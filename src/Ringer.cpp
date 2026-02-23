@@ -1,11 +1,15 @@
 #include "Ringer.h"
 
 Ringer::Ringer(MotorDriver& motor)
-    : _motor(motor), _state(IDLE), _phaseStart(0) {}
+    : _motor(motor), _state(IDLE), _phaseStart(0),
+      _pattern(nullptr), _phaseIndex(0) {}
 
-void Ringer::ringStart() {
-  _state = CONTINUOUS;
-  _motor.activate();
+void Ringer::ring(const RingPattern& pattern) {
+  _pattern = &pattern;
+  _phaseIndex = 0;
+  _phaseStart = millis();
+  _state = PATTERN;
+  _motor.activate();  // Phase 0 is always ON
 }
 
 void Ringer::ringStop() {
@@ -13,39 +17,27 @@ void Ringer::ringStop() {
   _motor.deactivate();
 }
 
-void Ringer::ringPattern() {
-  _state = PATTERN_ON;
-  _phaseStart = millis();
-  _motor.activate();
-}
-
 bool Ringer::isRinging() const {
   return _state != IDLE;
 }
 
 void Ringer::update() {
-  switch (_state) {
-    case IDLE:
-      break;
-
-    case CONTINUOUS:
-      break;
-
-    case PATTERN_ON:
-      if (millis() - _phaseStart >= PATTERN_ON_MS) {
-        _motor.deactivate();
-        _state = PATTERN_OFF;
-        _phaseStart = millis();
+  if (_state == PATTERN) {
+    if (millis() - _phaseStart >= _pattern->phases[_phaseIndex]) {
+      _phaseIndex++;
+      if (_phaseIndex >= _pattern->phaseCount) {
+        _phaseIndex = 0;
       }
-      break;
 
-    case PATTERN_OFF:
-      if (millis() - _phaseStart >= PATTERN_OFF_MS) {
+      _phaseStart = millis();
+
+      // Even indices are ON, odd indices are OFF
+      if (_phaseIndex % 2 == 0) {
         _motor.activate();
-        _state = PATTERN_ON;
-        _phaseStart = millis();
+      } else {
+        _motor.deactivate();
       }
-      break;
+    }
   }
 
   _motor.update();

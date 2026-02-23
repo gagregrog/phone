@@ -71,26 +71,41 @@ The device registers itself via mDNS as `phone.local`. If mDNS resolution is slo
 
 The physical button acts as a toggle:
 
-- Press once to start the standard US ring pattern (2s on, 4s off)
+- Press once to start the US ring pattern (2s on, 4s off)
 - Press again to stop ringing
 - Stops ringing regardless of whether it was started by the button or the API
+
+## Ringing Patterns
+
+Multiple country-specific ringing cadences are available:
+
+| Pattern | Name | Cadence |
+| ------- | ---- | ------- |
+| US | `us` | 2s on, 4s off |
+| UK | `uk` | 0.4s on, 0.2s off, 0.4s on, 2s off (double ring) |
+| Germany | `de` | 1s on, 4s off |
+| France | `fr` | 1.5s on, 3.5s off |
+| Japan | `jp` | 1s on, 2s off |
+| Italy | `it` | 1s on, 1s off, 1s on, 3s off (double ring) |
+| Sweden | `se` | 1s on, 5s off |
 
 ## REST API
 
 The API runs on port 80. All endpoints are non-blocking.
 
-### `POST /ring/start`
+### `POST /ring/<pattern>`
 
-Start continuous ringing (motor oscillates indefinitely).
+Start ringing with a specific country pattern. Replace `<pattern>` with a pattern name from the table above (e.g., `us`, `uk`, `de`).
 
 ```
-curl -X POST http://phone.local/ring/start
+curl -X POST http://phone.local/ring/us
+curl -X POST http://phone.local/ring/uk
 ```
 
 Response:
 
 ```json
-{ "status": "ringing" }
+{ "status": "us" }
 ```
 
 ### `POST /ring/stop`
@@ -105,20 +120,6 @@ Response:
 
 ```json
 { "status": "stopped" }
-```
-
-### `POST /ring/pattern`
-
-Start the standard US telephone ring cadence (2 seconds on, 4 seconds off, repeating).
-
-```
-curl -X POST http://phone.local/ring/pattern
-```
-
-Response:
-
-```json
-{ "status": "pattern" }
 ```
 
 ### `GET /ring/status`
@@ -137,6 +138,20 @@ Response:
 
 ```json
 { "ringing": false }
+```
+
+### `GET /ring/patterns`
+
+List all available ringing pattern names.
+
+```
+curl http://phone.local/ring/patterns
+```
+
+Response:
+
+```json
+["us","uk","de","fr","jp","it","se"]
 ```
 
 ### `GET /ip`

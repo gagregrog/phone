@@ -3,6 +3,7 @@
 #include "MotorDriver.h"
 #include "ButtonTrigger.h"
 #include "Ringer.h"
+#include "RingPattern.h"
 #include "WifiSetup.h"
 #include "RingerAPI.h"
 
@@ -26,7 +27,7 @@ void loop() {
     if (ringer.isRinging()) {
       ringer.ringStop();
     } else {
-      ringer.ringPattern();
+      ringer.ring(PATTERN_US);
     }
   }
 
