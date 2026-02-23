@@ -15,6 +15,7 @@ unsigned long parseDuration(const char* str) {
     char c = *p;
     if (c >= '0' && c <= '9') {
       current = current * 10 + (c - '0');
+      if (current > 86400) return 0;  // prevent overflow on long digit strings
       hasDigits = true;
     } else if (c == 'h' || c == 'm' || c == 's') {
       if (!hasDigits) return 0;

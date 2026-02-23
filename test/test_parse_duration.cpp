@@ -131,6 +131,11 @@ void test_over_max_rejected(void) {
   TEST_ASSERT_EQUAL(0UL, parseDuration("86401s"));
 }
 
+void test_overflow_digit_string(void) {
+  TEST_ASSERT_EQUAL(0UL, parseDuration("99999999999s"));
+  TEST_ASSERT_EQUAL(0UL, parseDuration("4294967296s"));
+}
+
 int main(int argc, char** argv) {
   UNITY_BEGIN();
 
@@ -167,6 +172,7 @@ int main(int argc, char** argv) {
   // Range limits
   RUN_TEST(test_max_allowed);
   RUN_TEST(test_over_max_rejected);
+  RUN_TEST(test_overflow_digit_string);
 
   return UNITY_END();
 }
