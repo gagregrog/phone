@@ -29,3 +29,4 @@ After adding a new feature or modifying existing logic, run `pio test -e native`
 Tests run natively on the host machine via `pio test -e native`. Each test lives in its own subdirectory under `test/` (e.g. `test/test_timer/test_timer.cpp`). A minimal Arduino mock at `test/mock/Arduino.h` provides a controllable `millis()` and GPIO stubs. When adding a new testable module:
 - Add its `.cpp` to the native `build_src_filter` in `platformio.ini`
 - Create a `test/test_<name>/test_<name>.cpp` with a `main()` using Unity
+- Mock headers live in `test/mock/` (e.g. `Arduino.h`). Source files that support test mocks (e.g. `mock_millis.cpp`) go in `src/test/` — this directory is included in the native build but excluded from the ESP32 build
