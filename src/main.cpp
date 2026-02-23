@@ -3,6 +3,8 @@
 #include "MotorDriver.h"
 #include "ButtonTrigger.h"
 #include "Ringer.h"
+#include "WifiSetup.h"
+#include "RingerAPI.h"
 
 MotorDriver motor(PIN_MOTOR_IN1, PIN_MOTOR_IN2, PIN_MOTOR_ENA);
 ButtonTrigger button(PIN_TRIGGER);
@@ -12,6 +14,9 @@ void setup() {
   Serial.begin(115200);
   motor.begin();
   button.begin();
+
+  wifiSetupBegin("PhoneSetup");
+  ringerAPIBegin(ringer);
 }
 
 void loop() {
