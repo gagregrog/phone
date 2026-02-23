@@ -55,6 +55,14 @@ No external pull-up resistor is needed — the firmware enables the ESP32's inte
 
 All pin assignments are defined in `include/pins.h` and can be changed there if needed.
 
+## Tests
+
+Unit tests run natively on your computer (no ESP32 needed):
+
+```
+pio test -e native
+```
+
 ## WiFi Setup
 
 On first boot (or when saved credentials are unavailable), the ESP32 creates a WiFi access point called **PhoneSetup**. Connect to it and a captive portal will appear where you can enter your WiFi credentials. They are saved to flash and used automatically on subsequent boots.
@@ -88,6 +96,7 @@ Multiple country-specific ringing cadences are available:
 | Japan | `jp` | 1s on, 2s off |
 | Italy | `it` | 1s on, 1s off, 1s on, 3s off (double ring) |
 | Sweden | `se` | 1s on, 5s off |
+| Chirp | `chirp` | 0.15s on, 0.1s off, 0.15s on, 0.6s off (two quick bursts) |
 
 ## REST API
 
@@ -132,20 +141,22 @@ Response:
 
 ### `GET /ring/status`
 
-Check whether the phone is currently ringing.
+Check whether the phone is currently ringing and the state of any active timer.
 
 ```
 curl http://phone.local/ring/status
 ```
 
-Response:
+Response (with active timer):
 
 ```json
-{ "ringing": true }
+{ "ringing": false, "timer": { "active": true, "remainingSec": 178, "totalSec": 300, "pattern": "chirp" } }
 ```
 
+Response (no active timer):
+
 ```json
-{ "ringing": false }
+{ "ringing": false, "timer": { "active": false } }
 ```
 
 ### `GET /ring/patterns`
@@ -159,7 +170,57 @@ curl http://phone.local/ring/patterns
 Response:
 
 ```json
-["us","uk","de","fr","jp","it","se"]
+["us","uk","de","fr","jp","it","se","chirp"]
+```
+
+### `POST /timer/<duration>[/<pattern>]`
+
+Start a countdown timer. When it expires, the phone rings automatically. Defaults to the `chirp` pattern (3 cycles) if no pattern is specified.
+
+Duration supports `h` (hours), `m` (minutes), and `s` (seconds) suffixes, which can be combined in order. At least one unit suffix is required. Valid range: 1 second to 24 hours.
+
+When combining units, sub-units are capped at 59 (e.g. `1h90m` is invalid — use `2h30m`).
+
+| Example | Duration |
+| ------- | -------- |
+| `20m` | 20 minutes |
+| `90s` | 90 seconds |
+| `1h30m` | 1 hour 30 minutes |
+| `1m30s` | 1 minute 30 seconds |
+| `2h` | 2 hours |
+
+```
+curl -X POST http://phone.local/timer/20m
+curl -X POST http://phone.local/timer/1h30m
+curl -X POST http://phone.local/timer/90s/us
+```
+
+Response:
+
+```json
+{ "status": "started", "totalSec": 300, "pattern": "chirp" }
+```
+
+Starting a new timer replaces any existing one. When the timer fires, it overrides any active ring.
+
+### `POST /timer/cancel`
+
+Cancel an active timer without triggering the ring.
+
+```
+curl -X POST http://phone.local/timer/cancel
+```
+
+Response:
+
+```json
+{ "status": "cancelled" }
+```
+
+If no timer is active:
+
+```json
+{ "status": "no_timer" }
 ```
 
 ### `GET /ip`

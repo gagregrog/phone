@@ -15,6 +15,7 @@ extern const RingPattern PATTERN_FR;
 extern const RingPattern PATTERN_JP;
 extern const RingPattern PATTERN_IT;
 extern const RingPattern PATTERN_SE;
+extern const RingPattern PATTERN_CHIRP;
 
 // Number of built-in patterns
 extern const uint8_t PATTERN_COUNT;
