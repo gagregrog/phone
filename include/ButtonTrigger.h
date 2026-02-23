@@ -7,7 +7,9 @@ public:
                          unsigned long debounceMs = 50);
 
   void begin();
-  bool isPressed();
+  void update();          // Call every loop iteration
+  bool isPressed() const; // Current debounced state
+  bool wasPressed();      // True once per press (rising edge)
 
 private:
   uint8_t _pin;
@@ -16,4 +18,5 @@ private:
   unsigned long _lastChangeTime;
   bool _lastRaw;
   bool _stable;
+  bool _prevStable;
 };

@@ -20,12 +20,14 @@ void setup() {
 }
 
 void loop() {
-  bool triggered = button.isPressed();
+  button.update();
 
-  if (triggered && !ringer.isRinging()) {
-    ringer.ringPattern();
-  } else if (!triggered && ringer.isRinging()) {
-    ringer.ringStop();
+  if (button.wasPressed()) {
+    if (ringer.isRinging()) {
+      ringer.ringStop();
+    } else {
+      ringer.ringPattern();
+    }
   }
 
   ringer.update();
