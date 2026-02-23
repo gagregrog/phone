@@ -1,4 +1,5 @@
 #include "RingerAPI.h"
+#include <WiFi.h>
 #include <ESPAsyncWebServer.h>
 
 static AsyncWebServer* server = nullptr;
@@ -30,6 +31,11 @@ void ringerAPIBegin(Ringer& ringer, uint16_t port) {
         ? "{\"ringing\":true}"
         : "{\"ringing\":false}";
       request->send(200, "application/json", body);
+    });
+
+  server->on("/ip", HTTP_GET,
+    [](AsyncWebServerRequest* request) {
+      request->send(200, "text/plain", WiFi.localIP().toString());
     });
 
   server->begin();
