@@ -5,6 +5,7 @@ Ringer::Ringer(MotorDriver& motor)
 
 void Ringer::ringStart() {
   _state = CONTINUOUS;
+  _motor.activate();
 }
 
 void Ringer::ringStop() {
@@ -15,6 +16,7 @@ void Ringer::ringStop() {
 void Ringer::ringPattern() {
   _state = PATTERN_ON;
   _phaseStart = millis();
+  _motor.activate();
 }
 
 bool Ringer::isRinging() const {
@@ -27,7 +29,6 @@ void Ringer::update() {
       break;
 
     case CONTINUOUS:
-      _motor.activate();
       break;
 
     case PATTERN_ON:
@@ -35,16 +36,17 @@ void Ringer::update() {
         _motor.deactivate();
         _state = PATTERN_OFF;
         _phaseStart = millis();
-      } else {
-        _motor.activate();
       }
       break;
 
     case PATTERN_OFF:
       if (millis() - _phaseStart >= PATTERN_OFF_MS) {
+        _motor.activate();
         _state = PATTERN_ON;
         _phaseStart = millis();
       }
       break;
   }
+
+  _motor.update();
 }
