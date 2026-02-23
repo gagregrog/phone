@@ -7,7 +7,7 @@ class Ringer {
 public:
   explicit Ringer(MotorDriver& motor);
 
-  void ring(const RingPattern& pattern);  // Start ringing with a pattern
+  void ring(const RingPattern& pattern, uint16_t cycles = 0);  // Start ringing (0 = infinite)
   void ringStop();                        // Stop all ringing immediately
   void update();                          // Call every loop iteration
   bool isRinging() const;
@@ -21,4 +21,5 @@ private:
 
   const RingPattern* _pattern;
   uint8_t _phaseIndex;
+  uint16_t _cyclesRemaining;  // 0 = infinite
 };

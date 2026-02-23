@@ -2,12 +2,13 @@
 
 Ringer::Ringer(MotorDriver& motor)
     : _motor(motor), _state(IDLE), _phaseStart(0),
-      _pattern(nullptr), _phaseIndex(0) {}
+      _pattern(nullptr), _phaseIndex(0), _cyclesRemaining(0) {}
 
-void Ringer::ring(const RingPattern& pattern) {
+void Ringer::ring(const RingPattern& pattern, uint16_t cycles) {
   _pattern = &pattern;
   _phaseIndex = 0;
   _phaseStart = millis();
+  _cyclesRemaining = cycles;
   _state = PATTERN;
   _motor.activate();  // Phase 0 is always ON
 }
@@ -27,6 +28,13 @@ void Ringer::update() {
       _phaseIndex++;
       if (_phaseIndex >= _pattern->phaseCount) {
         _phaseIndex = 0;
+        if (_cyclesRemaining > 0) {
+          _cyclesRemaining--;
+          if (_cyclesRemaining == 0) {
+            ringStop();
+            return;
+          }
+        }
       }
 
       _phaseStart = millis();

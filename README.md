@@ -93,19 +93,27 @@ Multiple country-specific ringing cadences are available:
 
 The API runs on port 80. All endpoints are non-blocking.
 
-### `POST /ring/<pattern>`
+### `POST /ring/<pattern>[/<count>]`
 
 Start ringing with a specific country pattern. Replace `<pattern>` with a pattern name from the table above (e.g., `us`, `uk`, `de`).
 
+Optionally append `/<count>` to ring for a specific number of cycles, then stop automatically. A cycle is one full pass through the pattern's phase array. Omit the count to ring indefinitely.
+
 ```
 curl -X POST http://phone.local/ring/us
-curl -X POST http://phone.local/ring/uk
+curl -X POST http://phone.local/ring/uk/5
 ```
 
-Response:
+Response (infinite):
 
 ```json
 { "status": "us" }
+```
+
+Response (5 cycles):
+
+```json
+{ "status": "uk", "cycles": 5 }
 ```
 
 ### `POST /ring/stop`
