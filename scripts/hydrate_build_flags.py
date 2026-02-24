@@ -1,6 +1,6 @@
 import sys
 
-FIRMWARE_DEFINES = {"OTA_PASSWORD"}
+FIRMWARE_DEFINES = {"OTA_PASSWORD", "TZ_STRING"}
 
 flags = []
 try:

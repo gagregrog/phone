@@ -77,9 +77,24 @@ Build and upload settings are read from a `.env` file in the project root (gitig
 
 ```
 OTA_PASSWORD=yourpassword        # compiled into firmware; required for OTA uploads
+TZ_STRING=EST5EDT,M3.2.0,M11.1.0 # POSIX timezone string; compiled into firmware
 IP=192.168.x.x                  # device IP for OTA uploads
 PORT=/dev/tty.usbserial-xxxx    # serial port for USB upload and monitoring
 ```
+
+`TZ_STRING` is a POSIX timezone string that controls both the UTC offset and DST rules. Common examples:
+
+| Timezone | `TZ_STRING` |
+| -------- | ----------- |
+| US Eastern | `EST5EDT,M3.2.0,M11.1.0` |
+| US Central | `CST6CDT,M3.2.0,M11.1.0` |
+| US Mountain | `MST7MDT,M3.2.0,M11.1.0` |
+| US Pacific | `PST8PDT,M3.2.0,M11.1.0` |
+| UK | `GMT0BST,M3.5.0/1,M10.5.0` |
+| Central Europe | `CET-1CEST,M3.5.0,M10.5.0/3` |
+| UTC | `UTC0` |
+
+If `TZ_STRING` is omitted from `.env`, the firmware defaults to `UTC0`.
 
 To switch between serial ports, comment out the one you don't want — commented lines (prefixed with `#`) are ignored:
 
@@ -161,33 +176,23 @@ Multiple country-specific ringing cadences are available:
 
 The API runs on port 80. All endpoints are non-blocking.
 
-### `GET /status`
+### Ring
 
-Check whether the phone is currently ringing and list all active timers.
+#### `GET /ring/status`
+
+Check whether the phone is currently ringing.
 
 ```
-curl http://phone.local/status
+curl http://phone.local/ring/status
 ```
 
-Response (no timers):
+Response:
 
 ```json
-{ "ringing": false, "timers": [] }
+{ "ringing": false }
 ```
 
-Response (with active timers):
-
-```json
-{
-  "ringing": false,
-  "timers": [
-    { "id": 1, "remaining": "2m58s", "total": "5m", "pattern": "chirp" },
-    { "id": 2, "remaining": "10m", "total": "1h", "pattern": "us" }
-  ]
-}
-```
-
-### `POST /ring/<pattern>[/<count>]`
+#### `POST /ring/<pattern>[/<count>]`
 
 Start ringing with a specific country pattern. Replace `<pattern>` with a pattern name from the table above (e.g., `us`, `uk`, `de`).
 
@@ -210,7 +215,7 @@ Response (5 cycles):
 { "status": "uk", "cycles": 5 }
 ```
 
-### `POST /ring/stop`
+#### `POST /ring/stop`
 
 Stop all ringing immediately.
 
@@ -224,7 +229,7 @@ Response:
 { "status": "stopped" }
 ```
 
-### `GET /ring/patterns`
+#### `GET /ring/patterns`
 
 List all available ringing pattern names.
 
@@ -238,7 +243,28 @@ Response:
 ["us","uk","de","fr","jp","it","se","chirp"]
 ```
 
-### `POST /timer/<duration>[/<pattern>]`
+### Timer
+
+#### `GET /timer/status`
+
+List all active timers.
+
+```
+curl http://phone.local/timer/status
+```
+
+Response:
+
+```json
+[
+  { "id": 1, "remaining": "2m58s", "total": "5m", "pattern": "chirp" },
+  { "id": 2, "remaining": "10m", "total": "1h", "pattern": "us" }
+]
+```
+
+Returns an empty array if no timers are active.
+
+#### `POST /timer/<duration>[/<pattern>]`
 
 Start a countdown timer. When it expires, the phone rings automatically. Defaults to the `chirp` pattern (1 cycle) if no pattern is specified. Multiple timers can be active simultaneously.
 
@@ -268,7 +294,7 @@ Response:
 
 The returned `id` can be used to cancel this specific timer later. When a timer fires it overrides any active ring.
 
-### `POST /timer/cancel/<id>`
+#### `POST /timer/cancel/<id>`
 
 Cancel a specific timer by its ID without triggering the ring. The ID is returned when the timer is created.
 
@@ -288,7 +314,7 @@ If the ID is not found:
 { "error": "not found" }
 ```
 
-### `POST /timer/cancel`
+#### `POST /timer/cancel`
 
 Cancel all active timers without triggering any rings.
 
@@ -302,7 +328,95 @@ Response:
 { "status": "cleared", "count": 2 }
 ```
 
-### `GET /ip`
+### Alarm
+
+#### `GET /alarm`
+
+List all scheduled alarms.
+
+```
+curl http://phone.local/alarm
+```
+
+Response:
+
+```json
+[
+  {"id": 1, "time": "08:30", "pattern": "us", "rings": 3, "repeat": true, "skipWeekends": false, "enabled": true},
+  {"id": 2, "time": "17:00", "pattern": "chirp", "rings": 1, "repeat": false, "skipWeekends": false, "enabled": true}
+]
+```
+
+#### `POST /alarm`
+
+Schedule a new alarm. Fires at the given local time using the timezone configured in `TZ_STRING`.
+
+```
+curl -X POST http://phone.local/alarm \
+  -H 'Content-Type: application/json' \
+  -d '{"hour": 8, "minute": 30, "pattern": "us", "rings": 3, "repeat": true, "skipWeekends": false}'
+```
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `hour` | int | 0–23 local time |
+| `minute` | int | 0–59 |
+| `pattern` | string | Ring pattern name (see table above) |
+| `rings` | int | Number of ring cycles (0 = infinite) |
+| `repeat` | bool | `true` to repeat daily; `false` for one-off |
+| `skipWeekends` | bool | Skip Saturday and Sunday when `true` |
+
+One-off alarms (`repeat: false`) require NTP to be synced and the target time to be in the future. Returns `503` if NTP is not yet synced, `400` if the time has already passed today. Repeating alarms are persisted to flash and restored after reboot; one-off alarms live in memory only.
+
+Response:
+
+```json
+{"id": 1, "time": "08:30", "pattern": "us", "rings": 3, "repeat": true, "skipWeekends": false, "enabled": true}
+```
+
+#### `PUT /alarm/{id}`
+
+Update an existing alarm (re-enables it if previously disabled).
+
+```
+curl -X PUT http://phone.local/alarm/1 \
+  -H 'Content-Type: application/json' \
+  -d '{"hour": 9, "minute": 0, "pattern": "uk", "rings": 2, "repeat": true, "skipWeekends": true}'
+```
+
+Returns `404` if the ID is not found.
+
+#### `DELETE /alarm/{id}`
+
+Delete a specific alarm.
+
+```
+curl -X DELETE http://phone.local/alarm/1
+```
+
+Response:
+
+```json
+{"status": "deleted", "id": 1}
+```
+
+#### `DELETE /alarm`
+
+Delete all alarms.
+
+```
+curl -X DELETE http://phone.local/alarm
+```
+
+Response:
+
+```json
+{"status": "cleared"}
+```
+
+### Device
+
+#### `GET /ip`
 
 Returns the device's IP address as plain text. Useful for adding a static entry to `/etc/hosts` to avoid slow mDNS resolution.
 

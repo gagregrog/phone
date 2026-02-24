@@ -26,6 +26,23 @@ When adding a new library, pin it to the exact version being implemented (e.g. `
 - `include/pins.h` — All GPIO pin definitions
 - `platformio.ini` — PlatformIO configuration
 
+## API Architecture
+
+`API.cpp` owns the `AsyncWebServer` and both ESPAsyncWebServer singletons (`onNotFound`, `onRequestBody`). It fans them out to per-module handlers. Each API module is self-contained and registers its own handlers independently — no module knows about any other.
+
+- `API.cpp` — server owner; call `apiInit()` then `apiStart()` in `main.cpp`
+- `DeviceAPI.cpp` — device-level utility routes (e.g. `GET /ip`)
+- `RingerAPI.cpp` — `/ring/` routes
+- `TimerAPI.cpp` — `/timer/` routes
+- `AlarmAPI.cpp` — `/alarm` routes
+
+**Adding a new API module:**
+1. Call `apiGetServer()->on(...)` for fixed routes
+2. Call `apiAddNotFoundHandler(...)` for path-param routes (return `true` if handled, `false` to pass through)
+3. Call `apiAddBodyHandler(...)` if the module needs to buffer request bodies for non-fixed routes
+4. Register `xxxAPIBegin()` in `main.cpp` between `apiInit()` and `apiStart()`
+5. Device-only modules — no entry in native `build_src_filter`
+
 ## Logging
 
 Use `logger` (not `Serial` directly) for all log output after WiFi is up. Never log sensitive values — this includes passwords, tokens, or raw credential data. The Telnet server transmits log output in plaintext with no authentication.
