@@ -1,27 +1,39 @@
 #pragma once
 #include <Arduino.h>
+#include <vector>
 #include "Ringer.h"
 #include "RingPattern.h"
+
+struct TimerInfo {
+  uint32_t id;
+  unsigned long remainingMs;
+  unsigned long totalMs;
+  const char* patternName;
+};
 
 class Timer {
 public:
   explicit Timer(Ringer& ringer);
 
-  void start(unsigned long durationMs, const RingPattern& pattern, uint16_t fireCycles = 3);
-  void cancel();
+  uint32_t start(unsigned long durationMs, const RingPattern& pattern, uint16_t fireCycles = 1);
+  bool cancel(uint32_t id);
+  void cancelAll();
   void update();
 
-  bool isActive() const;
-  unsigned long remainingMs() const;
-  unsigned long totalMs() const;
-  const char* patternName() const;
+  bool hasActive() const;
+  size_t count() const;
+  TimerInfo infoAt(size_t index) const;
 
 private:
-  Ringer& _ringer;
+  struct Entry {
+    uint32_t id;
+    unsigned long startMs;
+    unsigned long durationMs;
+    const RingPattern* pattern;
+    uint16_t fireCycles;
+  };
 
-  bool _active;
-  unsigned long _startMs;
-  unsigned long _durationMs;
-  const RingPattern* _pattern;
-  uint16_t _fireCycles;
+  Ringer& _ringer;
+  std::vector<Entry> _entries;
+  uint32_t _nextId;
 };

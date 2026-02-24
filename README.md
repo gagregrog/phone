@@ -55,6 +55,65 @@ No external pull-up resistor is needed — the firmware enables the ESP32's inte
 
 All pin assignments are defined in `include/pins.h` and can be changed there if needed.
 
+## Build & Upload
+
+Flash over USB (first time or after hardware changes):
+
+```
+pio run -e esp32dev -t upload
+```
+
+Flash over WiFi (OTA):
+
+```
+pio run -e esp32ota -t upload
+```
+
+`esp32ota` is the default environment, so the VSCode PlatformIO upload button will use OTA automatically.
+
+### .env Configuration
+
+Build and upload settings are read from a `.env` file in the project root (gitignored). Create one with the following keys:
+
+```
+OTA_PASSWORD=yourpassword        # compiled into firmware; required for OTA uploads
+IP=192.168.x.x                  # device IP for OTA uploads
+PORT=/dev/tty.usbserial-xxxx    # serial port for USB upload and monitoring
+```
+
+To switch between serial ports, comment out the one you don't want — commented lines (prefixed with `#`) are ignored:
+
+```
+#PORT=/dev/tty.usbserial-1450
+PORT=/dev/tty.usbserial-110
+```
+
+Generate a random OTA password:
+
+```
+python3 -c "import secrets; print('OTA_PASSWORD=' + secrets.token_hex(12))"
+```
+
+If `.env` is missing, the build will warn and the firmware will use an empty OTA password.
+
+> **Note:** A VPN on the host machine will typically block OTA uploads. Disable it before uploading.
+
+## Serial Debugging over WiFi
+
+The device runs a Telnet server on port 23. Connect from any terminal to stream log output:
+
+```
+telnet phone.local
+```
+
+Or using netcat:
+
+```
+nc phone.local 23
+```
+
+Log output is mirrored to both the USB serial port and the Telnet connection simultaneously. The WiFi connection messages during boot are only visible on USB serial (Telnet isn't available until WiFi is up).
+
 ## Tests
 
 Unit tests run natively on your computer (no ESP32 needed):
@@ -102,6 +161,32 @@ Multiple country-specific ringing cadences are available:
 
 The API runs on port 80. All endpoints are non-blocking.
 
+### `GET /status`
+
+Check whether the phone is currently ringing and list all active timers.
+
+```
+curl http://phone.local/status
+```
+
+Response (no timers):
+
+```json
+{ "ringing": false, "timers": [] }
+```
+
+Response (with active timers):
+
+```json
+{
+  "ringing": false,
+  "timers": [
+    { "id": 1, "remaining": "2m58s", "total": "5m", "pattern": "chirp" },
+    { "id": 2, "remaining": "10m", "total": "1h", "pattern": "us" }
+  ]
+}
+```
+
 ### `POST /ring/<pattern>[/<count>]`
 
 Start ringing with a specific country pattern. Replace `<pattern>` with a pattern name from the table above (e.g., `us`, `uk`, `de`).
@@ -139,26 +224,6 @@ Response:
 { "status": "stopped" }
 ```
 
-### `GET /ring/status`
-
-Check whether the phone is currently ringing and the state of any active timer.
-
-```
-curl http://phone.local/ring/status
-```
-
-Response (with active timer):
-
-```json
-{ "ringing": false, "timer": { "active": true, "remainingSec": 178, "totalSec": 300, "pattern": "chirp" } }
-```
-
-Response (no active timer):
-
-```json
-{ "ringing": false, "timer": { "active": false } }
-```
-
 ### `GET /ring/patterns`
 
 List all available ringing pattern names.
@@ -175,7 +240,7 @@ Response:
 
 ### `POST /timer/<duration>[/<pattern>]`
 
-Start a countdown timer. When it expires, the phone rings automatically. Defaults to the `chirp` pattern (3 cycles) if no pattern is specified.
+Start a countdown timer. When it expires, the phone rings automatically. Defaults to the `chirp` pattern (1 cycle) if no pattern is specified. Multiple timers can be active simultaneously.
 
 Duration supports `h` (hours), `m` (minutes), and `s` (seconds) suffixes, which can be combined in order. At least one unit suffix is required. Valid range: 1 second to 24 hours.
 
@@ -198,14 +263,34 @@ curl -X POST http://phone.local/timer/90s/us
 Response:
 
 ```json
-{ "status": "started", "totalSec": 300, "pattern": "chirp" }
+{ "status": "started", "id": 1, "duration": "5m", "pattern": "chirp" }
 ```
 
-Starting a new timer replaces any existing one. When the timer fires, it overrides any active ring.
+The returned `id` can be used to cancel this specific timer later. When a timer fires it overrides any active ring.
+
+### `POST /timer/cancel/<id>`
+
+Cancel a specific timer by its ID without triggering the ring. The ID is returned when the timer is created.
+
+```
+curl -X POST http://phone.local/timer/cancel/1
+```
+
+Response:
+
+```json
+{ "status": "cancelled", "id": 1 }
+```
+
+If the ID is not found:
+
+```json
+{ "error": "not found" }
+```
 
 ### `POST /timer/cancel`
 
-Cancel an active timer without triggering the ring.
+Cancel all active timers without triggering any rings.
 
 ```
 curl -X POST http://phone.local/timer/cancel
@@ -214,13 +299,7 @@ curl -X POST http://phone.local/timer/cancel
 Response:
 
 ```json
-{ "status": "cancelled" }
-```
-
-If no timer is active:
-
-```json
-{ "status": "no_timer" }
+{ "status": "cleared", "count": 2 }
 ```
 
 ### `GET /ip`

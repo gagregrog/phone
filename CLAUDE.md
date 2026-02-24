@@ -15,12 +15,24 @@ The user will run all PlatformIO commands (`pio run`, `pio run -t upload`, etc.)
   - Extract pure logic (parsing, state machines, calculations) into standalone modules
   - Modules that use `millis()` or GPIO are still testable via the mock at `test/mock/Arduino.h`
 
+## Dependencies
+
+When adding a new library, pin it to the exact version being implemented (e.g. `bblanchon/ArduinoJson@7.4.2`). Never use unpinned or range-based version specifiers. This prevents unexpected breaking changes from upstream updates.
+
 ## Project Structure
 
 - `include/` — Header files (`.h`)
 - `src/` — Implementation files (`.cpp`)
 - `include/pins.h` — All GPIO pin definitions
 - `platformio.ini` — PlatformIO configuration
+
+## Logging
+
+Use `logger` (not `Serial` directly) for all log output after WiFi is up. Never log sensitive values — this includes passwords, tokens, or raw credential data. The Telnet server transmits log output in plaintext with no authentication.
+
+## Documentation
+
+Update `README.md` whenever making changes that affect how the project is built, configured, or used — including build flags, `.env` keys, API changes, hardware wiring, or new features.
 
 ## Testing
 

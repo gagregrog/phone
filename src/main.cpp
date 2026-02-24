@@ -1,5 +1,7 @@
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 #include "pins.h"
+#include "Logger.h"
 #include "MotorDriver.h"
 #include "ButtonTrigger.h"
 #include "Ringer.h"
@@ -19,6 +21,7 @@ void setup() {
   button.begin();
 
   wifiSetupBegin("PhoneSetup");
+  logger.begin();
   ringerAPIBegin(ringer, timer);
 }
 
@@ -33,6 +36,8 @@ void loop() {
     }
   }
 
+  logger.handle();
+  ArduinoOTA.handle();
   timer.update();
   ringer.update();
 }

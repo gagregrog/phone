@@ -136,6 +136,68 @@ void test_overflow_digit_string(void) {
   TEST_ASSERT_EQUAL(0UL, parseDuration("4294967296s"));
 }
 
+// --- formatDuration ---
+
+void test_format_zero(void) {
+  char buf[10];
+  formatDuration(0, buf, sizeof(buf));
+  TEST_ASSERT_EQUAL_STRING("0s", buf);
+}
+
+void test_format_seconds_only(void) {
+  char buf[10];
+  formatDuration(45, buf, sizeof(buf));
+  TEST_ASSERT_EQUAL_STRING("45s", buf);
+}
+
+void test_format_minutes_only(void) {
+  char buf[10];
+  formatDuration(300, buf, sizeof(buf));  // 5m
+  TEST_ASSERT_EQUAL_STRING("5m", buf);
+}
+
+void test_format_minutes_and_seconds(void) {
+  char buf[10];
+  formatDuration(330, buf, sizeof(buf));  // 5m30s
+  TEST_ASSERT_EQUAL_STRING("5m30s", buf);
+}
+
+void test_format_hours_only(void) {
+  char buf[10];
+  formatDuration(3600, buf, sizeof(buf));
+  TEST_ASSERT_EQUAL_STRING("1h", buf);
+}
+
+void test_format_hours_and_minutes(void) {
+  char buf[10];
+  formatDuration(5700, buf, sizeof(buf));  // 1h35m
+  TEST_ASSERT_EQUAL_STRING("1h35m", buf);
+}
+
+void test_format_hours_and_seconds(void) {
+  char buf[10];
+  formatDuration(3601, buf, sizeof(buf));  // 1h1s
+  TEST_ASSERT_EQUAL_STRING("1h1s", buf);
+}
+
+void test_format_hours_minutes_seconds(void) {
+  char buf[10];
+  formatDuration(3661, buf, sizeof(buf));  // 1h1m1s
+  TEST_ASSERT_EQUAL_STRING("1h1m1s", buf);
+}
+
+void test_format_max(void) {
+  char buf[10];
+  formatDuration(86400, buf, sizeof(buf));  // 24h
+  TEST_ASSERT_EQUAL_STRING("24h", buf);
+}
+
+void test_format_exact_minute(void) {
+  char buf[10];
+  formatDuration(60, buf, sizeof(buf));
+  TEST_ASSERT_EQUAL_STRING("1m", buf);
+}
+
 int main(int argc, char** argv) {
   UNITY_BEGIN();
 
@@ -173,6 +235,18 @@ int main(int argc, char** argv) {
   RUN_TEST(test_max_allowed);
   RUN_TEST(test_over_max_rejected);
   RUN_TEST(test_overflow_digit_string);
+
+  // formatDuration
+  RUN_TEST(test_format_zero);
+  RUN_TEST(test_format_seconds_only);
+  RUN_TEST(test_format_minutes_only);
+  RUN_TEST(test_format_minutes_and_seconds);
+  RUN_TEST(test_format_hours_only);
+  RUN_TEST(test_format_hours_and_minutes);
+  RUN_TEST(test_format_hours_and_seconds);
+  RUN_TEST(test_format_hours_minutes_seconds);
+  RUN_TEST(test_format_max);
+  RUN_TEST(test_format_exact_minute);
 
   return UNITY_END();
 }

@@ -1,7 +1,9 @@
 #include "WifiSetup.h"
+#include "Logger.h"
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <ESPmDNS.h>
+#include <ArduinoOTA.h>
 
 void wifiSetupBegin(const char* apName, const char* mdnsHostname) {
   WiFiManager wm;
@@ -15,13 +17,17 @@ void wifiSetupBegin(const char* apName, const char* mdnsHostname) {
     ESP.restart();
   }
 
-  Serial.print("WiFi connected, IP: ");
-  Serial.println(WiFi.localIP());
+  logger.infof("WiFi connected, IP: %s", WiFi.localIP().toString().c_str());
 
   if (MDNS.begin(mdnsHostname)) {
     MDNS.addService("http", "tcp", 80);
-    Serial.printf("mDNS: http://%s.local\n", mdnsHostname);
+    logger.infof("mDNS: http://%s.local", mdnsHostname);
   } else {
-    Serial.println("mDNS failed to start");
+    logger.warn("mDNS failed to start");
   }
+
+  ArduinoOTA.setHostname(mdnsHostname);
+  ArduinoOTA.setPassword(OTA_PASSWORD);
+  ArduinoOTA.begin();
+  logger.info("OTA ready");
 }

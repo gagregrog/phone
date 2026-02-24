@@ -19,3 +19,13 @@ inline unsigned long millis() { return _mock_millis; }
 inline void pinMode(uint8_t, uint8_t) {}
 inline void digitalWrite(uint8_t, uint8_t) {}
 inline int  digitalRead(uint8_t) { return LOW; }
+
+// Serial mock — captures output to a string for test assertions
+#include <string>
+extern std::string _mock_serial_output;
+
+struct HardwareSerial {
+  void print(const char* s);
+  void println(const char* s);
+};
+extern HardwareSerial Serial;

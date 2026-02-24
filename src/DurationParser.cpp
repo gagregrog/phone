@@ -1,6 +1,7 @@
 #include "DurationParser.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
 
 unsigned long parseDuration(const char* str) {
   if (!str || !*str) return 0;
@@ -47,4 +48,15 @@ unsigned long parseDuration(const char* str) {
   if (totalSec > 86400) return 0;
 
   return totalSec * 1000UL;
+}
+
+void formatDuration(unsigned long totalSec, char* buf, size_t bufSize) {
+  unsigned long h = totalSec / 3600;
+  unsigned long m = (totalSec % 3600) / 60;
+  unsigned long s = totalSec % 60;
+
+  int written = 0;
+  if (h > 0) written += snprintf(buf + written, bufSize - written, "%luh", h);
+  if (m > 0) written += snprintf(buf + written, bufSize - written, "%lum", m);
+  if (s > 0 || written == 0) snprintf(buf + written, bufSize - written, "%lus", s);
 }
