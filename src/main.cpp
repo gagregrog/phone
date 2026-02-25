@@ -18,6 +18,7 @@
 #include "AlarmAPI.h"
 #include "ClockManager.h"
 #include "ClockAPI.h"
+#include "WebUI.h"
 
 #ifndef TZ_STRING
 #define TZ_STRING "UTC0"
@@ -47,6 +48,7 @@ void setup() {
     timerAPIBegin(timer);
     alarmAPIBegin(alarmMgr);
     clockAPIBegin(clockMgr);
+    webUIBegin();
     apiStart();
 }
 

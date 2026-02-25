@@ -173,6 +173,17 @@ Multiple country-specific ringing cadences are available:
 | Chirp | `chirp` | 0.15s on, 0.1s off, 0.15s on, 0.6s off (two quick bursts) |
 | Chime | `chime` | 0.4s on, 0.4s off (used by hourly clock chime) |
 
+## Web UI
+
+A browser-based dashboard is served at `http://phone.local/` (port 80). It provides a live view of all device state and controls for every feature:
+
+- **Ringer** — see ring status, trigger any pattern with one click, stop ringing
+- **Timers** — view active timers with countdowns, add new timers, cancel individually or all at once
+- **Alarms** — view scheduled alarms, add new alarms, edit existing alarms in-place, delete individually or all
+- **Hourly chime** — see enabled state and mode, toggle on/off, switch between `n_chimes` and `single` mode
+
+Status refreshes automatically every 5 seconds. Open the page in any browser on the same network.
+
 ## REST API
 
 The API runs on port 80. All endpoints are non-blocking.
