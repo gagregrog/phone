@@ -1,5 +1,6 @@
 #include "RingerAPI.h"
 #include "API.h"
+#include "Events.h"
 #include "Logger.h"
 #include "RingPattern.h"
 #include <ESPAsyncWebServer.h>
@@ -18,6 +19,7 @@ void ringerAPIBegin(Ringer& ringer) {
         [&ringer](AsyncWebServerRequest* request) {
             logger.info("POST /ring/stop");
             ringer.ringStop();
+            eventsPublish("ring/stopped", "{}");
             JsonDocument doc;
             doc["status"] = "stopped";
             sendJson(request, 200, doc);
@@ -84,7 +86,10 @@ void ringerAPIBegin(Ringer& ringer) {
         JsonDocument doc;
         doc["status"] = p->name;
         if (cycles > 0) doc["cycles"] = cycles;
-        sendJson(request, 200, doc);
+        String body;
+        serializeJson(doc, body);
+        request->send(200, "application/json", body);
+        eventsPublish("ring/started", body.c_str());
         return true;
     });
 }

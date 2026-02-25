@@ -34,12 +34,17 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 .hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
 .pgrid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
 #edit-banner{display:none;font-size:.82rem;color:#fbbf24;margin-bottom:8px;padding:5px 8px;background:#451a03;border-radius:4px}
+#ws-badge{font-size:.72rem;padding:2px 8px;border-radius:10px;background:#14532d;color:#86efac}
+#ws-badge.off{background:#450a0a;color:#fca5a5}
 </style>
 </head>
 <body>
 <div class="hdr">
   <h1>Phone Controller</h1>
-  <button class="bm" onclick="refreshAll()">Refresh All</button>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="ws-badge">Live</span>
+    <button class="bm" onclick="refreshAll()">Refresh</button>
+  </div>
 </div>
 
 <!-- Ringer -->
@@ -141,12 +146,10 @@ async function loadRinger() {
 
 async function startRing(p) {
   await req('POST', '/ring/' + p);
-  setTimeout(loadRinger, 300);
 }
 
 async function stopRing() {
   await req('POST', '/ring/stop');
-  setTimeout(loadRinger, 300);
 }
 
 async function loadTimers() {
@@ -168,17 +171,14 @@ async function addTimer() {
   if (!dur) return;
   await req('POST', `/timer/${dur}/${pat}`);
   document.getElementById('t-dur').value = '';
-  setTimeout(loadTimers, 300);
 }
 
 async function cancelTimer(id) {
   await req('POST', '/timer/cancel/' + id);
-  setTimeout(loadTimers, 300);
 }
 
 async function cancelAllTimers() {
   await req('POST', '/timer/cancel');
-  setTimeout(loadTimers, 300);
 }
 
 async function loadAlarms() {
@@ -246,18 +246,15 @@ async function submitAlarm() {
   } else {
     await req('POST', '/alarm', body);
   }
-  setTimeout(loadAlarms, 300);
 }
 
 async function deleteAlarm(id) {
   await req('DELETE', '/alarm/' + id);
-  setTimeout(loadAlarms, 300);
 }
 
 async function clearAlarms() {
   if (!confirm('Delete all alarms?')) return;
   await req('DELETE', '/alarm');
-  setTimeout(loadAlarms, 300);
 }
 
 async function loadClock() {
@@ -270,19 +267,46 @@ async function loadClock() {
 
 async function toggleClock() {
   await req('POST', '/clock/toggle');
-  setTimeout(loadClock, 300);
 }
 
 async function toggleClockMode() {
   await req('POST', '/clock/mode/toggle');
-  setTimeout(loadClock, 300);
 }
 
 async function refreshAll() {
   await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock()]);
 }
 
+// WebSocket — drives all live updates
+function connectWS() {
+  const ws = new WebSocket(`ws://${location.host}/ws`);
+  const badge = document.getElementById('ws-badge');
+
+  ws.onopen = () => {
+    badge.textContent = 'Live';
+    badge.className = '';
+    refreshAll();
+  };
+
+  ws.onclose = () => {
+    badge.textContent = 'Offline';
+    badge.className = 'off';
+    setTimeout(connectWS, 3000);
+  };
+
+  ws.onmessage = ({data}) => {
+    try {
+      const {topic} = JSON.parse(data);
+      if (topic.startsWith('ring/')) loadRinger();
+      else if (topic.startsWith('timer/')) loadTimers();
+      else if (topic.startsWith('alarm/')) loadAlarms();
+      else if (topic.startsWith('clock/')) loadClock();
+    } catch(e) {}
+  };
+}
+
 loadPatterns().then(refreshAll);
+connectWS();
 </script>
 </body>
 </html>

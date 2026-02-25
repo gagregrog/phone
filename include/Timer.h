@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <functional>
 #include <vector>
 #include "Ringer.h"
 #include "RingPattern.h"
@@ -20,6 +21,8 @@ public:
   void cancelAll();
   void update();
 
+  void setOnFire(std::function<void(uint32_t id, const char* pattern)> cb);
+
   bool hasActive() const;
   size_t count() const;
   TimerInfo infoAt(size_t index) const;
@@ -36,4 +39,5 @@ private:
   Ringer& _ringer;
   std::vector<Entry> _entries;
   uint32_t _nextId;
+  std::function<void(uint32_t, const char*)> _onFire;
 };

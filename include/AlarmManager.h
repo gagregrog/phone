@@ -24,6 +24,8 @@ public:
     // Returns false if time is not synced or if the time has already passed today.
     bool     isTimeInFuture(uint8_t hour, uint8_t minute) const;
 
+    void     setOnFire(std::function<void(const AlarmEntry&)> cb);
+
     void     init();   // load from store, call once at boot
     void     tick();   // check for firing alarms, call each loop()
 
@@ -34,6 +36,7 @@ private:
     std::vector<AlarmEntry> _alarms;
     uint32_t    _nextId;
     uint32_t    _lastCheckedMinuteKey;
+    std::function<void(const AlarmEntry&)> _onFire;
 
     void save();
 };

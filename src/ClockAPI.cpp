@@ -1,5 +1,6 @@
 #include "ClockAPI.h"
 #include "API.h"
+#include "Events.h"
 #include "Logger.h"
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
@@ -62,7 +63,10 @@ void clockAPIBegin(ClockManager& mgr) {
 
         JsonDocument doc;
         buildStateDoc(doc);
-        sendJson(req, 200, doc);
+        String body;
+        serializeJson(doc, body);
+        req->send(200, "application/json", body);
+        eventsPublish("clock/updated", body.c_str());
     });
 
     // POST /clock/mode/toggle — flip chime mode, persist, return new state
@@ -80,6 +84,9 @@ void clockAPIBegin(ClockManager& mgr) {
 
         JsonDocument doc;
         buildStateDoc(doc);
-        sendJson(req, 200, doc);
+        String body;
+        serializeJson(doc, body);
+        req->send(200, "application/json", body);
+        eventsPublish("clock/updated", body.c_str());
     });
 }

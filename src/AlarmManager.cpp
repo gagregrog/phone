@@ -6,6 +6,10 @@ AlarmManager::AlarmManager(Ringer& ringer, AlarmStore& store, TimeFunc getTime)
     : _ringer(ringer), _store(store), _getTime(getTime),
       _nextId(1), _lastCheckedMinuteKey((uint32_t)-1) {}
 
+void AlarmManager::setOnFire(std::function<void(const AlarmEntry&)> cb) {
+    _onFire = std::move(cb);
+}
+
 uint32_t AlarmManager::add(uint8_t hour, uint8_t minute, const char* pattern,
                             uint16_t rings, bool repeat, bool skipWeekends) {
     AlarmEntry e;
@@ -89,6 +93,7 @@ void AlarmManager::tick() {
     if (minuteKey == _lastCheckedMinuteKey) return;
     _lastCheckedMinuteKey = minuteKey;
 
+    std::vector<AlarmEntry> fired;
     bool changed = false;
     for (auto& e : _alarms) {
         if (!e.enabled) continue;
@@ -100,6 +105,8 @@ void AlarmManager::tick() {
             _ringer.ring(*p, e.rings);
         }
 
+        fired.push_back(e);
+
         if (!e.repeat) {
             e.enabled = false;
             changed = true;
@@ -107,6 +114,10 @@ void AlarmManager::tick() {
     }
 
     if (changed) save();
+
+    for (const auto& e : fired) {
+        if (_onFire) _onFire(e);
+    }
 }
 
 void AlarmManager::save() {

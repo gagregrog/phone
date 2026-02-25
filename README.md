@@ -182,7 +182,7 @@ A browser-based dashboard is served at `http://phone.local/` (port 80). It provi
 - **Alarms** — view scheduled alarms, add new alarms, edit existing alarms in-place, delete individually or all
 - **Hourly chime** — see enabled state and mode, toggle on/off, switch between `n_chimes` and `single` mode
 
-Status refreshes automatically every 5 seconds. Open the page in any browser on the same network.
+The dashboard connects via WebSocket (`ws://phone.local/ws`) and updates in real time whenever state changes — including hardware-triggered events like timer expiry, alarm fires, button presses, and hourly chimes. A **Live / Offline** badge in the header shows the connection status; the page reconnects automatically if the connection drops.
 
 ## REST API
 

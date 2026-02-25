@@ -18,7 +18,12 @@
 #include "AlarmAPI.h"
 #include "ClockManager.h"
 #include "ClockAPI.h"
+#include "TimerEvents.h"
+#include "AlarmEvents.h"
+#include "ClockEvents.h"
 #include "WebUI.h"
+#include "Events.h"
+#include "WebSocketAPI.h"
 
 #ifndef TZ_STRING
 #define TZ_STRING "UTC0"
@@ -42,12 +47,17 @@ void setup() {
 
     clockBegin(TZ_STRING);
     alarmMgr.init();
+    timerEventsBegin(timer);
+    alarmEventsBegin(alarmMgr);
+    clockEventsBegin(clockMgr);
+
     apiInit();
     deviceAPIBegin();
     ringerAPIBegin(ringer);
     timerAPIBegin(timer);
     alarmAPIBegin(alarmMgr);
     clockAPIBegin(clockMgr);
+    webSocketAPIBegin();
     webUIBegin();
     apiStart();
 }
@@ -58,13 +68,16 @@ void loop() {
     if (button.wasPressed()) {
         if (ringer.isRinging()) {
             ringer.ringStop();
+            eventsPublish("ring/stopped", "{}");
         } else {
             ringer.ring(PATTERN_US);
+            eventsPublish("ring/started", "{\"pattern\":\"us\"}");
         }
     }
 
     logger.handle();
     ArduinoOTA.handle();
+    webSocketLoop();
     timer.update();
     alarmMgr.tick();
     clockMgr.tick();

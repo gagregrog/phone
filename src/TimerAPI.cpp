@@ -1,5 +1,6 @@
 #include "TimerAPI.h"
 #include "API.h"
+#include "Events.h"
 #include "Logger.h"
 #include "DurationParser.h"
 #include "RingPattern.h"
@@ -44,7 +45,10 @@ void timerAPIBegin(Timer& timer) {
             JsonDocument doc;
             doc["status"] = "cleared";
             doc["count"] = n;
-            sendJson(request, 200, doc);
+            String body;
+            serializeJson(doc, body);
+            request->send(200, "application/json", body);
+            eventsPublish("timer/cleared", body.c_str());
         });
 
     // NotFoundHandler: POST /timer/cancel/{id} and POST /timer/{duration}[/{pattern}]
@@ -73,7 +77,10 @@ void timerAPIBegin(Timer& timer) {
                 logger.infof("POST /timer/cancel/%u: cancelled", (unsigned)id);
                 doc["status"] = "cancelled";
                 doc["id"] = id;
-                sendJson(request, 200, doc);
+                String body;
+                serializeJson(doc, body);
+                request->send(200, "application/json", body);
+                eventsPublish("timer/cancelled", body.c_str());
             } else {
                 logger.infof("POST /timer/cancel/%u: not found", (unsigned)id);
                 doc["error"] = "not found";
@@ -117,7 +124,10 @@ void timerAPIBegin(Timer& timer) {
         doc["id"] = id;
         doc["duration"] = timeBuf;
         doc["pattern"] = p->name;
-        sendJson(request, 200, doc);
+        String body;
+        serializeJson(doc, body);
+        request->send(200, "application/json", body);
+        eventsPublish("timer/started", body.c_str());
         return true;
     });
 }

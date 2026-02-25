@@ -1,6 +1,7 @@
 #include "AlarmAPI.h"
 #include "API.h"
 #include "Clock.h"
+#include "Events.h"
 #include "Logger.h"
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
@@ -48,6 +49,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
         JsonDocument doc;
         doc["status"] = "cleared";
         sendJson(req, 200, doc);
+        eventsPublish("alarm/cleared", "{}");
     });
 
     // POST /alarm — create alarm (body collected via the inline body handler below)
@@ -104,7 +106,10 @@ void alarmAPIBegin(AlarmManager& mgr) {
                     break;
                 }
             }
-            sendJson(req, 201, resp);
+            String body;
+            serializeJson(resp, body);
+            req->send(201, "application/json", body);
+            eventsPublish("alarm/created", body.c_str());
         },
         nullptr,
         // Body handler for POST /alarm
@@ -196,7 +201,10 @@ void alarmAPIBegin(AlarmManager& mgr) {
                         break;
                     }
                 }
-                sendJson(request, 200, resp);
+                String body;
+                serializeJson(resp, body);
+                request->send(200, "application/json", body);
+                eventsPublish("alarm/updated", body.c_str());
             } else {
                 logger.infof("PUT /alarm/%u: not found", (unsigned)id);
                 resp["error"] = "not found";
@@ -218,7 +226,10 @@ void alarmAPIBegin(AlarmManager& mgr) {
                 logger.infof("DELETE /alarm/%u: deleted", (unsigned)id);
                 doc["status"] = "deleted";
                 doc["id"] = id;
-                sendJson(request, 200, doc);
+                String body;
+                serializeJson(doc, body);
+                request->send(200, "application/json", body);
+                eventsPublish("alarm/deleted", body.c_str());
             } else {
                 logger.infof("DELETE /alarm/%u: not found", (unsigned)id);
                 doc["error"] = "not found";

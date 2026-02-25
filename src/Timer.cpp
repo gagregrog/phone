@@ -3,6 +3,10 @@
 Timer::Timer(Ringer& ringer)
   : _ringer(ringer), _nextId(1) {}
 
+void Timer::setOnFire(std::function<void(uint32_t, const char*)> cb) {
+  _onFire = std::move(cb);
+}
+
 uint32_t Timer::start(unsigned long durationMs, const RingPattern& pattern, uint16_t fireCycles) {
   Entry e;
   e.id = _nextId++;
@@ -30,16 +34,20 @@ void Timer::cancelAll() {
 
 void Timer::update() {
   unsigned long now = millis();
+  std::vector<Entry> expired;
   size_t i = 0;
   while (i < _entries.size()) {
-    Entry& e = _entries[i];
-    if (now - e.startMs >= e.durationMs) {
-      _ringer.ringStop();
-      _ringer.ring(*e.pattern, e.fireCycles);
+    if (now - _entries[i].startMs >= _entries[i].durationMs) {
+      expired.push_back(_entries[i]);
       _entries.erase(_entries.begin() + i);
     } else {
       ++i;
     }
+  }
+  for (const auto& e : expired) {
+    _ringer.ringStop();
+    _ringer.ring(*e.pattern, e.fireCycles);
+    if (_onFire) _onFire(e.id, e.pattern ? e.pattern->name : "");
   }
 }
 

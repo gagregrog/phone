@@ -6,6 +6,10 @@ ClockManager::ClockManager(Ringer& ringer, std::function<bool(struct tm*)> getTi
       _enabled(false), _chimeMode(CHIME_N_CHIMES),
       _lastCheckedMinuteKey((uint32_t)-1) {}
 
+void ClockManager::setOnChime(std::function<void(uint16_t)> cb) {
+    _onChime = std::move(cb);
+}
+
 bool ClockManager::isEnabled() const {
     return _enabled;
 }
@@ -43,4 +47,5 @@ void ClockManager::tick() {
         rings = 1;
     }
     _ringer.ring(PATTERN_CHIME, rings);
+    if (_onChime) _onChime(rings);
 }
