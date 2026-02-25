@@ -7,6 +7,7 @@
 #include "ringer/Ringer.h"
 #include "ringer/RingPattern.h"
 #include "system/WifiSetup.h"
+#include "system/LogEvents.h"
 #include "web/API.h"
 #include "web/DeviceAPI.h"
 #include "ringer/RingerAPI.h"
@@ -50,6 +51,7 @@ void setup() {
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
+    logEventsBegin();
 
     apiInit();
     deviceAPIBegin();

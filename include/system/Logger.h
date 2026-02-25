@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <stdarg.h>
+#include <functional>
 
 class Logger {
 public:
@@ -15,9 +16,12 @@ public:
   void warnf(const char* fmt, ...);
   void errorf(const char* fmt, ...);
 
+  void setOnLog(std::function<void(const char* level, const char* msg)> cb);
+
 private:
-  void _log(const char* level, const char* msg);
-  void _logf(const char* level, const char* fmt, va_list args);
+  void _log(const char* prefix, const char* level, const char* msg);
+  void _logf(const char* prefix, const char* level, const char* fmt, va_list args);
+  std::function<void(const char*, const char*)> _onLog;
 };
 
 extern Logger logger;

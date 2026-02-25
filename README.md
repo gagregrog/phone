@@ -113,21 +113,22 @@ If `.env` is missing, the build will warn and the firmware will use an empty OTA
 
 > **Note:** A VPN on the host machine will typically block OTA uploads. Disable it before uploading.
 
-## Serial Debugging over WiFi
+## Logs & Debugging
 
-The device runs a Telnet server on port 23. Connect from any terminal to stream log output:
+Log output is written to three destinations simultaneously:
 
-```
-telnet phone.local
-```
+- **USB serial** — always available; useful during initial setup and boot
+- **Telnet** (port 23) — available once WiFi is up; connect from any terminal:
+  ```
+  telnet phone.local
+  ```
+  Or using netcat:
+  ```
+  nc phone.local 23
+  ```
+- **Web UI** — the Logs panel in the dashboard streams live log output over WebSocket, with timestamps (once NTP is synced) and color-coded severity. The device buffers the last 100 log entries, so history is visible immediately when you open the page.
 
-Or using netcat:
-
-```
-nc phone.local 23
-```
-
-Log output is mirrored to both the USB serial port and the Telnet connection simultaneously. The WiFi connection messages during boot are only visible on USB serial (Telnet isn't available until WiFi is up).
+Boot messages before WiFi is up are only visible on USB serial.
 
 ## Tests
 
@@ -181,6 +182,7 @@ A browser-based dashboard is served at `http://phone.local/` (port 80). It provi
 - **Timers** — view active timers with countdowns, add new timers, cancel individually or all at once
 - **Alarms** — view scheduled alarms, add new alarms, edit existing alarms in-place, delete individually or all
 - **Hourly chime** — see enabled state and mode, toggle on/off, switch between `n_chimes` and `single` mode
+- **Logs** — live streaming log console with color-coded severity (info/warn/error) and timestamps. Displays the last 100 log entries buffered on the device, so recent history is visible immediately on page load without needing to wait for new messages. A **Clear** button wipes the display.
 
 The dashboard connects via WebSocket (`ws://phone.local/ws`) and updates in real time whenever state changes — including hardware-triggered events like timer expiry, alarm fires, button presses, and hourly chimes. A **Live / Offline** badge in the header shows the connection status; the page reconnects automatically if the connection drops.
 

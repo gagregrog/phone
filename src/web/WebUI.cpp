@@ -36,6 +36,8 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 #edit-banner{display:none;font-size:.82rem;color:#fbbf24;margin-bottom:8px;padding:5px 8px;background:#451a03;border-radius:4px}
 #ws-badge{font-size:.72rem;padding:2px 8px;border-radius:10px;background:#14532d;color:#86efac}
 #ws-badge.off{background:#450a0a;color:#fca5a5}
+#log-out{background:#0d1117;border-radius:4px;padding:10px;height:220px;overflow-y:auto;font-family:monospace;font-size:.78rem;line-height:1.6}
+.ll-info{color:#86efac}.ll-warn{color:#fbbf24}.ll-error{color:#f87171}
 </style>
 </head>
 <body>
@@ -101,6 +103,15 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
     <button class="bp" onclick="toggleClock()">Toggle On/Off</button>
     <button class="bm" onclick="toggleClockMode()">Toggle Mode</button>
   </div>
+</div>
+
+<!-- Logs -->
+<div class="card">
+  <div class="hdr" style="margin-bottom:8px">
+    <h2 style="margin:0">Logs</h2>
+    <button class="bm" onclick="clearLogs()">Clear</button>
+  </div>
+  <div id="log-out"></div>
 </div>
 
 <script>
@@ -277,6 +288,22 @@ async function refreshAll() {
   await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock()]);
 }
 
+function appendLog(level, msg, time) {
+  const el = document.getElementById('log-out');
+  const line = document.createElement('div');
+  line.className = 'll-' + level;
+  const prefix = level === 'error' ? '[ERROR]' : level === 'warn' ? '[WARN] ' : '[INFO] ';
+  const ts = time ? `[${time}] ` : '';
+  line.textContent = ts + prefix + ' ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  while (el.children.length > 200) el.removeChild(el.firstChild);
+}
+
+function clearLogs() {
+  document.getElementById('log-out').innerHTML = '';
+}
+
 // WebSocket — drives all live updates
 function connectWS() {
   const ws = new WebSocket(`ws://${location.host}/ws`);
@@ -294,13 +321,14 @@ function connectWS() {
     setTimeout(connectWS, 3000);
   };
 
-  ws.onmessage = ({data}) => {
+  ws.onmessage = (evt) => {
     try {
-      const {topic} = JSON.parse(data);
-      if (topic.startsWith('ring/')) loadRinger();
-      else if (topic.startsWith('timer/')) loadTimers();
-      else if (topic.startsWith('alarm/')) loadAlarms();
-      else if (topic.startsWith('clock/')) loadClock();
+      const msg = JSON.parse(evt.data);
+      if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time);
+      else if (msg.topic.startsWith('ring/')) loadRinger();
+      else if (msg.topic.startsWith('timer/')) loadTimers();
+      else if (msg.topic.startsWith('alarm/')) loadAlarms();
+      else if (msg.topic.startsWith('clock/')) loadClock();
     } catch(e) {}
   };
 }
