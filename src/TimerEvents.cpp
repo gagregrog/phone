@@ -1,18 +1,19 @@
 #include "TimerEvents.h"
+#include "TimerJSON.h"
 #include "Events.h"
 #include <ArduinoJson.h>
 
 void timerEventsBegin(Timer& timer) {
-    timer.setOnFire([](uint32_t id, const char* pattern) {
-        char buf[64];
+    timer.setOnFire([](const TimerInfo& info) {
         JsonDocument doc;
-        doc["id"] = id;
-        doc["pattern"] = pattern;
-        serializeJson(doc, buf, sizeof(buf));
-        eventsPublish("timer/expired", buf);
+        timerInfoFillJson(doc.to<JsonObject>(), info);
+        String body;
+        serializeJson(doc, body);
+        eventsPublish("timer/expired", body.c_str());
         doc.clear();
-        doc["pattern"] = pattern;
-        serializeJson(doc, buf, sizeof(buf));
-        eventsPublish("ring/started", buf);
+        doc["pattern"] = info.patternName;
+        String ringBody;
+        serializeJson(doc, ringBody);
+        eventsPublish("ring/started", ringBody.c_str());
     });
 }

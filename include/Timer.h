@@ -21,7 +21,7 @@ public:
   void cancelAll();
   void update();
 
-  void setOnFire(std::function<void(uint32_t id, const char* pattern)> cb);
+  void setOnFire(std::function<void(const TimerInfo&)> cb);
 
   bool hasActive() const;
   size_t count() const;
@@ -39,5 +39,5 @@ private:
   Ringer& _ringer;
   std::vector<Entry> _entries;
   uint32_t _nextId;
-  std::function<void(uint32_t, const char*)> _onFire;
+  std::function<void(const TimerInfo&)> _onFire;
 };

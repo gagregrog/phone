@@ -1,4 +1,5 @@
 #include "TimerAPI.h"
+#include "TimerJSON.h"
 #include "API.h"
 #include "Events.h"
 #include "Logger.h"
@@ -20,18 +21,10 @@ void timerAPIBegin(Timer& timer) {
     server->on("/timer/status", HTTP_GET,
         [&timer](AsyncWebServerRequest* request) {
             logger.info("GET /timer/status");
-            char timeBuf[10];
             JsonDocument doc;
             JsonArray arr = doc.to<JsonArray>();
             for (size_t i = 0; i < timer.count(); ++i) {
-                TimerInfo info = timer.infoAt(i);
-                JsonObject t = arr.add<JsonObject>();
-                t["id"] = info.id;
-                formatDuration((info.remainingMs + 500) / 1000, timeBuf, sizeof(timeBuf));
-                t["remaining"] = timeBuf;
-                formatDuration(info.totalMs / 1000, timeBuf, sizeof(timeBuf));
-                t["total"] = timeBuf;
-                t["pattern"] = info.patternName;
+                timerInfoFillJson(arr.add<JsonObject>(), timer.infoAt(i));
             }
             sendJson(request, 200, doc);
         });

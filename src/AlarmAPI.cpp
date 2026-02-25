@@ -1,4 +1,5 @@
 #include "AlarmAPI.h"
+#include "AlarmJSON.h"
 #include "API.h"
 #include "Clock.h"
 #include "Events.h"
@@ -15,18 +16,6 @@ static void sendJson(AsyncWebServerRequest* req, int code, JsonDocument& doc) {
     req->send(code, "application/json", body);
 }
 
-static void alarmToJson(JsonObject obj, const AlarmEntry& e) {
-    char timeBuf[6];
-    snprintf(timeBuf, sizeof(timeBuf), "%02u:%02u", (unsigned)e.hour, (unsigned)e.minute);
-    obj["id"]           = e.id;
-    obj["time"]         = timeBuf;
-    obj["pattern"]      = e.patternName;
-    obj["rings"]        = e.rings;
-    obj["repeat"]       = e.repeat;
-    obj["skipWeekends"] = e.skipWeekends;
-    obj["enabled"]      = e.enabled;
-}
-
 void alarmAPIBegin(AlarmManager& mgr) {
     _alarmMgr = &mgr;
     AsyncWebServer* server = apiGetServer();
@@ -37,7 +26,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
         JsonDocument doc;
         JsonArray arr = doc.to<JsonArray>();
         for (const auto& e : _alarmMgr->getAll()) {
-            alarmToJson(arr.add<JsonObject>(), e);
+            alarmFillJson(arr.add<JsonObject>(), e);
         }
         sendJson(req, 200, doc);
     });
@@ -102,7 +91,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
             JsonDocument resp;
             for (const auto& e : all) {
                 if (e.id == id) {
-                    alarmToJson(resp.to<JsonObject>(), e);
+                    alarmFillJson(resp.to<JsonObject>(), e);
                     break;
                 }
             }
@@ -189,15 +178,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
                 const std::vector<AlarmEntry>& all = _alarmMgr->getAll();
                 for (const auto& e : all) {
                     if (e.id == id) {
-                        char timeBuf[6];
-                        snprintf(timeBuf, sizeof(timeBuf), "%02u:%02u", (unsigned)e.hour, (unsigned)e.minute);
-                        resp["id"]           = e.id;
-                        resp["time"]         = timeBuf;
-                        resp["pattern"]      = e.patternName;
-                        resp["rings"]        = e.rings;
-                        resp["repeat"]       = e.repeat;
-                        resp["skipWeekends"] = e.skipWeekends;
-                        resp["enabled"]      = e.enabled;
+                        alarmFillJson(resp.to<JsonObject>(), e);
                         break;
                     }
                 }

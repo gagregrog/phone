@@ -1,4 +1,5 @@
 #include "ClockAPI.h"
+#include "ClockJSON.h"
 #include "API.h"
 #include "Events.h"
 #include "Logger.h"
@@ -14,17 +15,8 @@ static void sendJson(AsyncWebServerRequest* req, int code, JsonDocument& doc) {
     req->send(code, "application/json", body);
 }
 
-static const char* chimeModeToString(ChimeMode mode) {
-    return (mode == CHIME_N_CHIMES) ? "n_chimes" : "single";
-}
-
 static ChimeMode chimeModeFromString(const char* s) {
     return (strcmp(s, "n_chimes") == 0) ? CHIME_N_CHIMES : CHIME_SINGLE;
-}
-
-static void buildStateDoc(JsonDocument& doc) {
-    doc["enabled"] = _clockMgr->isEnabled();
-    doc["mode"]    = chimeModeToString(_clockMgr->getChimeMode());
 }
 
 void clockAPIBegin(ClockManager& mgr) {
@@ -45,7 +37,7 @@ void clockAPIBegin(ClockManager& mgr) {
     server->on("/clock", HTTP_GET, [](AsyncWebServerRequest* req) {
         logger.info("GET /clock");
         JsonDocument doc;
-        buildStateDoc(doc);
+        clockStateFillJson(doc.to<JsonObject>(), _clockMgr->isEnabled(), _clockMgr->getChimeMode());
         sendJson(req, 200, doc);
     });
 
@@ -62,7 +54,7 @@ void clockAPIBegin(ClockManager& mgr) {
         logger.infof("POST /clock/toggle: enabled=%d", (int)newEnabled);
 
         JsonDocument doc;
-        buildStateDoc(doc);
+        clockStateFillJson(doc.to<JsonObject>(), _clockMgr->isEnabled(), _clockMgr->getChimeMode());
         String body;
         serializeJson(doc, body);
         req->send(200, "application/json", body);
@@ -83,7 +75,7 @@ void clockAPIBegin(ClockManager& mgr) {
         logger.infof("POST /clock/mode/toggle: mode=%s", chimeModeToString(newMode));
 
         JsonDocument doc;
-        buildStateDoc(doc);
+        clockStateFillJson(doc.to<JsonObject>(), _clockMgr->isEnabled(), _clockMgr->getChimeMode());
         String body;
         serializeJson(doc, body);
         req->send(200, "application/json", body);

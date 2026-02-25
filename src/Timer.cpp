@@ -3,7 +3,7 @@
 Timer::Timer(Ringer& ringer)
   : _ringer(ringer), _nextId(1) {}
 
-void Timer::setOnFire(std::function<void(uint32_t, const char*)> cb) {
+void Timer::setOnFire(std::function<void(const TimerInfo&)> cb) {
   _onFire = std::move(cb);
 }
 
@@ -47,7 +47,14 @@ void Timer::update() {
   for (const auto& e : expired) {
     _ringer.ringStop();
     _ringer.ring(*e.pattern, e.fireCycles);
-    if (_onFire) _onFire(e.id, e.pattern ? e.pattern->name : "");
+    if (_onFire) {
+      TimerInfo info;
+      info.id = e.id;
+      info.remainingMs = 0;
+      info.totalMs = e.durationMs;
+      info.patternName = e.pattern ? e.pattern->name : "";
+      _onFire(info);
+    }
   }
 }
 
