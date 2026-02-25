@@ -30,7 +30,7 @@ void test_find_unknown_returns_null(void) {
 // --- Pattern data integrity ---
 
 void test_pattern_count(void) {
-  TEST_ASSERT_EQUAL(8, PATTERN_COUNT);
+  TEST_ASSERT_EQUAL(9, PATTERN_COUNT);
 }
 
 void test_all_patterns_have_names(void) {

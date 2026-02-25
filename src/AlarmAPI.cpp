@@ -1,6 +1,6 @@
 #include "AlarmAPI.h"
 #include "API.h"
-#include "AlarmClock.h"
+#include "Clock.h"
 #include "Logger.h"
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
@@ -82,7 +82,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
 
             if (!repeat) {
                 struct tm now;
-                if (!alarmClockGetLocalTime(&now)) {
+                if (!clockGetLocalTime(&now)) {
                     req->send(503, "application/json", "{\"error\":\"time not synced\"}");
                     return;
                 }

@@ -10,6 +10,7 @@ static const unsigned long PHASES_JP[] = {1000, 2000};
 static const unsigned long PHASES_IT[] = {1000, 1000, 1000, 3000};
 static const unsigned long PHASES_SE[] = {1000, 5000};
 static const unsigned long PHASES_CHIRP[] = {150, 100, 150, 600};
+static const unsigned long PHASES_CHIME[] = {400, 400};
 
 const RingPattern PATTERN_US = {"us", PHASES_US, 2};
 const RingPattern PATTERN_UK = {"uk", PHASES_UK, 4};
@@ -19,11 +20,12 @@ const RingPattern PATTERN_JP = {"jp", PHASES_JP, 2};
 const RingPattern PATTERN_IT = {"it", PHASES_IT, 4};
 const RingPattern PATTERN_SE = {"se", PHASES_SE, 2};
 const RingPattern PATTERN_CHIRP = {"chirp", PHASES_CHIRP, 4};
+const RingPattern PATTERN_CHIME = {"chime", PHASES_CHIME, 2};
 
 const RingPattern* const ALL_PATTERNS[] = {
   &PATTERN_US, &PATTERN_UK, &PATTERN_DE, &PATTERN_FR,
   &PATTERN_JP, &PATTERN_IT, &PATTERN_SE,
-  &PATTERN_CHIRP
+  &PATTERN_CHIRP, &PATTERN_CHIME
 };
 
 const uint8_t PATTERN_COUNT = sizeof(ALL_PATTERNS) / sizeof(ALL_PATTERNS[0]);

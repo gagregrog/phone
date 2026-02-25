@@ -14,8 +14,10 @@
 #include "Timer.h"
 #include "NVSAlarmStore.h"
 #include "AlarmManager.h"
-#include "AlarmClock.h"
+#include "Clock.h"
 #include "AlarmAPI.h"
+#include "ClockManager.h"
+#include "ClockAPI.h"
 
 #ifndef TZ_STRING
 #define TZ_STRING "UTC0"
@@ -26,7 +28,8 @@ ButtonTrigger button(PIN_TRIGGER);
 Ringer ringer(motor);
 Timer timer(ringer);
 NVSAlarmStore alarmStore;
-AlarmManager  alarmMgr(ringer, alarmStore, alarmClockGetLocalTime);
+AlarmManager  alarmMgr(ringer, alarmStore, clockGetLocalTime);
+ClockManager  clockMgr(ringer, clockGetLocalTime);
 
 void setup() {
     Serial.begin(115200);
@@ -36,13 +39,14 @@ void setup() {
     wifiSetupBegin("PhoneSetup");
     logger.begin();
 
-    alarmClockBegin(TZ_STRING);
+    clockBegin(TZ_STRING);
     alarmMgr.init();
     apiInit();
     deviceAPIBegin();
     ringerAPIBegin(ringer);
     timerAPIBegin(timer);
     alarmAPIBegin(alarmMgr);
+    clockAPIBegin(clockMgr);
     apiStart();
 }
 
@@ -61,5 +65,6 @@ void loop() {
     ArduinoOTA.handle();
     timer.update();
     alarmMgr.tick();
+    clockMgr.tick();
     ringer.update();
 }

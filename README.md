@@ -171,6 +171,7 @@ Multiple country-specific ringing cadences are available:
 | Italy | `it` | 1s on, 1s off, 1s on, 3s off (double ring) |
 | Sweden | `se` | 1s on, 5s off |
 | Chirp | `chirp` | 0.15s on, 0.1s off, 0.15s on, 0.6s off (two quick bursts) |
+| Chime | `chime` | 0.4s on, 0.4s off (used by hourly clock chime) |
 
 ## REST API
 
@@ -412,6 +413,59 @@ Response:
 
 ```json
 {"status": "cleared"}
+```
+
+### Clock
+
+The hourly chime strikes at the top of each hour using the `chime` pattern (400ms on, 400ms off). It will not interrupt an active alarm or timer ring. Both the enabled state and mode persist across reboots.
+
+Two modes are available:
+
+| Mode | Behavior |
+| ---- | -------- |
+| `n_chimes` | Rings N times matching the 12-hour clock (1 at 1:00, 12 at noon/midnight) |
+| `single` | Rings once at the top of every hour |
+
+#### `GET /clock`
+
+Return the current enabled state and chime mode.
+
+```
+curl http://phone.local/clock
+```
+
+Response:
+
+```json
+{"enabled": false, "mode": "n_chimes"}
+```
+
+#### `POST /clock/toggle`
+
+Toggle the hourly chime on or off. Returns the new state.
+
+```
+curl -X POST http://phone.local/clock/toggle
+```
+
+Response:
+
+```json
+{"enabled": false, "mode": "n_chimes"}
+```
+
+#### `POST /clock/mode/toggle`
+
+Switch between `n_chimes` and `single` mode. Returns the new state.
+
+```
+curl -X POST http://phone.local/clock/mode/toggle
+```
+
+Response:
+
+```json
+{"enabled": true, "mode": "single"}
 ```
 
 ### Device
