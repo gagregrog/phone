@@ -126,6 +126,9 @@ async function req(method, path, body) {
   } catch(e) { return null; }
 }
 
+const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪'};
+function patLabel(p) { return PAT_FLAGS[p] ? PAT_FLAGS[p] + ' ' + p : p; }
+
 async function loadPatterns() {
   const data = await req('GET', '/ring/patterns');
   if (!data) return;
@@ -133,14 +136,14 @@ async function loadPatterns() {
   btns.innerHTML = '';
   data.forEach(p => {
     const b = document.createElement('button');
-    b.className = 'bp'; b.textContent = p;
+    b.className = 'bp'; b.textContent = patLabel(p);
     b.onclick = () => startRing(p);
     btns.appendChild(b);
   });
   ['t-pat','a-pat'].forEach(id => {
     const sel = document.getElementById(id);
     const prev = sel.value;
-    sel.innerHTML = data.map(p => `<option>${p}</option>`).join('');
+    sel.innerHTML = data.map(p => `<option value="${p}">${patLabel(p)}</option>`).join('');
     if (prev && data.includes(prev)) sel.value = prev;
   });
   document.getElementById('t-pat').value = 'chirp';
