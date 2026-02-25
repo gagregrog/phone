@@ -1,5 +1,5 @@
 #include <unity.h>
-#include "DurationParser.h"
+#include "timer/DurationParser.h"
 
 // --- Valid single-unit durations ---
 

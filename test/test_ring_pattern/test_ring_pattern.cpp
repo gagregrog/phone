@@ -1,5 +1,5 @@
 #include <unity.h>
-#include "RingPattern.h"
+#include "ringer/RingPattern.h"
 #include <string.h>
 
 // --- findPattern lookup ---

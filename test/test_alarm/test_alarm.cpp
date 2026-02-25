@@ -1,6 +1,6 @@
 #include <unity.h>
 #include <string.h>
-#include "AlarmManager.h"
+#include "alarm/AlarmManager.h"
 
 // ---------------------------------------------------------------------------
 // Mock time

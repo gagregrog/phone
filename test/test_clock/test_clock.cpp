@@ -1,6 +1,6 @@
 #include <unity.h>
 #include <string.h>
-#include "ClockManager.h"
+#include "clock/ClockManager.h"
 
 // ---------------------------------------------------------------------------
 // Mock time

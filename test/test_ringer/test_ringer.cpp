@@ -1,5 +1,5 @@
 #include <unity.h>
-#include "Ringer.h"
+#include "ringer/Ringer.h"
 
 // Declared in mock/Arduino.h, defined in mock_millis.cpp
 extern unsigned long _mock_millis;
