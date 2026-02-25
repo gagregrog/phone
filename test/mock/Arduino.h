@@ -15,10 +15,13 @@ inline unsigned long millis() { return _mock_millis; }
 #define HIGH    1
 #define LOW     0
 
-// GPIO stubs (no-ops)
+// Controllable per-pin state — tests set _mock_pin_values[pin] = HIGH/LOW
+extern uint8_t _mock_pin_values[40];
+
+// GPIO stubs
 inline void pinMode(uint8_t, uint8_t) {}
 inline void digitalWrite(uint8_t, uint8_t) {}
-inline int  digitalRead(uint8_t) { return LOW; }
+inline int  digitalRead(uint8_t pin) { return _mock_pin_values[pin]; }
 
 // Serial mock — captures output to a string for test assertions
 #include <string>

@@ -51,6 +51,21 @@ Pick either winding and connect that pair to OUT1 and OUT2. Polarity doesn't mat
 
 No external pull-up resistor is needed — the firmware enables the ESP32's internal pull-up on GPIO 14.
 
+#### Rotary Dial
+
+| Dial Contact  | Connection    |
+| ------------- | ------------- |
+| Off-normal    | ESP32 GPIO 26 |
+| Pulse         | ESP32 GPIO 33 |
+| Common (GND)  | ESP32 GND     |
+
+No external pull-up resistors are needed — the firmware enables the ESP32's internal pull-ups on both pins.
+
+- **Off-normal** contact closes (pulls GPIO 26 LOW) when the dial is in motion and opens when it returns to rest.
+- **Pulse** contact pulses LOW once per digit as the dial springs back (10 pulses = 0).
+
+When a digit is dialed it is logged via the standard log output.
+
 #### Pin Reference
 
 All pin assignments are defined in `include/pins.h` and can be changed there if needed.

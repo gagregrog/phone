@@ -7,3 +7,7 @@
 
 // Button trigger
 #define PIN_TRIGGER 14
+
+// Rotary dial
+#define PIN_DIAL_ACTIVE 26  // LOW = dial is off normal (dialing in progress)
+#define PIN_DIAL_PULSE  33  // pulses LOW once per digit as dial returns

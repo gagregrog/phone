@@ -4,6 +4,7 @@
 #include "system/Logger.h"
 #include "hardware/MotorDriver.h"
 #include "hardware/ButtonTrigger.h"
+#include "hardware/DialReader.h"
 #include "ringer/Ringer.h"
 #include "ringer/RingPattern.h"
 #include "system/WifiSetup.h"
@@ -32,6 +33,7 @@
 
 MotorDriver motor(PIN_MOTOR_IN1, PIN_MOTOR_IN2, PIN_MOTOR_ENA);
 ButtonTrigger button(PIN_TRIGGER);
+DialReader dialReader;
 Ringer ringer(motor);
 Timer timer(ringer);
 NVSAlarmStore alarmStore;
@@ -42,6 +44,8 @@ void setup() {
     Serial.begin(115200);
     motor.begin();
     button.begin();
+    dialReader.begin();
+    dialReader.setOnDigit([](int d) { logger.infof("Dialed: %d", d); });
 
     wifiSetupBegin("PhoneSetup");
     logger.begin();
@@ -77,6 +81,7 @@ void loop() {
         }
     }
 
+    dialReader.tick();
     logger.handle();
     ArduinoOTA.handle();
     webSocketLoop();
