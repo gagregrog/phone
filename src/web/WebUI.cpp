@@ -169,6 +169,7 @@ async function stopRing() {
 async function loadTimers() {
   const data = await req('GET', '/timer/status');
   const tb = document.getElementById('t-body');
+  if (!tb) return;
   if (!data || !data.length) {
     tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
     return;
@@ -198,6 +199,7 @@ async function cancelAllTimers() {
 async function loadAlarms() {
   const data = await req('GET', '/alarm');
   const tb = document.getElementById('a-body');
+  if (!tb) return;
   if (!data || !data.length) {
     tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
     return;
@@ -310,6 +312,7 @@ function clearLogs() {
 // WebSocket — drives all live updates
 let ws = null;
 let lastMsgTime = Date.now();
+let wsWasOffline = false;
 
 function connectWS() {
   // Ghost connection: OPEN but no message for 15s — force close so badge goes Offline
@@ -325,10 +328,15 @@ function connectWS() {
     badge.textContent = 'Live';
     badge.className = '';
     lastMsgTime = Date.now();
-    refreshAll();
+    // Only refresh on reconnect after being offline; initial load is handled by loadPatterns().then(refreshAll)
+    if (wsWasOffline) {
+      wsWasOffline = false;
+      refreshAll();
+    }
   };
 
   ws.onclose = () => {
+    wsWasOffline = true;
     badge.textContent = 'Offline';
     badge.className = 'off';
   };
