@@ -1,9 +1,7 @@
 #include <unity.h>
+#include "Arduino.h"
 #include "hardware/DialReader.h"
 #include "hardware/pins.h"
-
-extern unsigned long _mock_millis;
-extern uint8_t _mock_pin_values[];
 
 static DialReader* dial;
 static int lastDigit;
