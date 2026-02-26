@@ -308,8 +308,11 @@ function clearLogs() {
 }
 
 // WebSocket — drives all live updates
+let ws = null;
+
 function connectWS() {
-  const ws = new WebSocket(`ws://${location.host}/ws`);
+  if (ws && ws.readyState !== WebSocket.CLOSED) return;
+  ws = new WebSocket(`ws://${location.host}/ws`);
   const badge = document.getElementById('ws-badge');
 
   ws.onopen = () => {
@@ -321,7 +324,6 @@ function connectWS() {
   ws.onclose = () => {
     badge.textContent = 'Offline';
     badge.className = 'off';
-    setTimeout(connectWS, 3000);
   };
 
   ws.onmessage = (evt) => {
@@ -336,6 +338,8 @@ function connectWS() {
   };
 }
 
+// Watchdog: retry every 3s regardless of whether onclose fired
+setInterval(connectWS, 3000);
 loadPatterns().then(refreshAll);
 connectWS();
 </script>
