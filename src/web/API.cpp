@@ -16,7 +16,7 @@ void apiStart() {
         for (auto& h : _notFoundHandlers) {
             if (h(request)) return;
         }
-        logger.warnf("404 %s", request->url().c_str());
+        logger.warnf("[%s] 404 %s", request->client()->remoteIP().toString().c_str(), request->url().c_str());
         request->send(404, "text/plain", "Not Found");
     });
 

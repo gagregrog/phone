@@ -35,7 +35,7 @@ void clockAPIBegin(ClockManager& mgr) {
 
     // GET /clock — return enabled state and chime mode
     server->on("/clock", HTTP_GET, [](AsyncWebServerRequest* req) {
-        logger.info("GET /clock");
+        logger.infof("[%s] GET /clock", req->client()->remoteIP().toString().c_str());
         JsonDocument doc;
         clockStateFillJson(doc.to<JsonObject>(), _clockMgr->isEnabled(), _clockMgr->getChimeMode());
         sendJson(req, 200, doc);
@@ -51,7 +51,7 @@ void clockAPIBegin(ClockManager& mgr) {
         prefs.putBool("enabled", newEnabled);
         prefs.end();
 
-        logger.infof("POST /clock/toggle: enabled=%d", (int)newEnabled);
+        logger.infof("[%s] POST /clock/toggle: enabled=%d", req->client()->remoteIP().toString().c_str(), (int)newEnabled);
 
         JsonDocument doc;
         clockStateFillJson(doc.to<JsonObject>(), _clockMgr->isEnabled(), _clockMgr->getChimeMode());
@@ -72,7 +72,7 @@ void clockAPIBegin(ClockManager& mgr) {
         prefs.putString("mode", chimeModeToString(newMode));
         prefs.end();
 
-        logger.infof("POST /clock/mode/toggle: mode=%s", chimeModeToString(newMode));
+        logger.infof("[%s] POST /clock/mode/toggle: mode=%s", req->client()->remoteIP().toString().c_str(), chimeModeToString(newMode));
 
         JsonDocument doc;
         clockStateFillJson(doc.to<JsonObject>(), _clockMgr->isEnabled(), _clockMgr->getChimeMode());

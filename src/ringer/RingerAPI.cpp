@@ -17,7 +17,7 @@ void ringerAPIBegin(Ringer& ringer) {
 
     server->on("/ring/stop", HTTP_POST,
         [&ringer](AsyncWebServerRequest* request) {
-            logger.info("POST /ring/stop");
+            logger.infof("[%s] POST /ring/stop", request->client()->remoteIP().toString().c_str());
             ringer.ringStop();
             eventsPublish("ring/stopped", "{}");
             JsonDocument doc;
@@ -27,7 +27,7 @@ void ringerAPIBegin(Ringer& ringer) {
 
     server->on("/ring/status", HTTP_GET,
         [&ringer](AsyncWebServerRequest* request) {
-            logger.info("GET /ring/status");
+            logger.infof("[%s] GET /ring/status", request->client()->remoteIP().toString().c_str());
             JsonDocument doc;
             doc["ringing"] = ringer.isRinging();
             sendJson(request, 200, doc);
@@ -35,7 +35,7 @@ void ringerAPIBegin(Ringer& ringer) {
 
     server->on("/ring/patterns", HTTP_GET,
         [](AsyncWebServerRequest* request) {
-            logger.info("GET /ring/patterns");
+            logger.infof("[%s] GET /ring/patterns", request->client()->remoteIP().toString().c_str());
             JsonDocument doc;
             JsonArray arr = doc.to<JsonArray>();
             for (uint8_t i = 0; i < PATTERN_COUNT; i++) {
@@ -49,8 +49,9 @@ void ringerAPIBegin(Ringer& ringer) {
         String url = request->url();
         if (!url.startsWith("/ring/")) return false;
 
+        String ip = request->client()->remoteIP().toString();
         if (request->method() != HTTP_POST) {
-            logger.warnf("404 %s", url.c_str());
+            logger.warnf("[%s] 404 %s", ip.c_str(), url.c_str());
             request->send(404, "text/plain", "Not Found");
             return true;
         }
@@ -67,7 +68,7 @@ void ringerAPIBegin(Ringer& ringer) {
             String countStr = rest.substring(slash + 1);
             long val = countStr.toInt();
             if (val <= 0 || val > 9) {
-                logger.warnf("POST %s: invalid count", url.c_str());
+                logger.warnf("[%s] POST %s: invalid count", ip.c_str(), url.c_str());
                 request->send(400, "application/json", "{\"error\":\"invalid count\"}");
                 return true;
             }
@@ -76,13 +77,13 @@ void ringerAPIBegin(Ringer& ringer) {
 
         const RingPattern* p = findPattern(name.c_str());
         if (!p) {
-            logger.warnf("POST %s: unknown pattern '%s'", url.c_str(), name.c_str());
+            logger.warnf("[%s] POST %s: unknown pattern '%s'", ip.c_str(), url.c_str(), name.c_str());
             request->send(404, "application/json", "{\"error\":\"unknown pattern\"}");
             return true;
         }
 
         ringer.ring(*p, cycles);
-        logger.infof("POST %s: ringing %s", url.c_str(), p->name);
+        logger.infof("[%s] POST %s: ringing %s", ip.c_str(), url.c_str(), p->name);
         JsonDocument doc;
         doc["status"] = p->name;
         if (cycles > 0) doc["cycles"] = cycles;

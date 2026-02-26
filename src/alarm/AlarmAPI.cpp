@@ -22,7 +22,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
 
     // GET /alarm — list all alarms
     server->on("/alarm", HTTP_GET, [](AsyncWebServerRequest* req) {
-        logger.info("GET /alarm");
+        logger.infof("[%s] GET /alarm", req->client()->remoteIP().toString().c_str());
         JsonDocument doc;
         JsonArray arr = doc.to<JsonArray>();
         for (const auto& e : _alarmMgr->getAll()) {
@@ -33,7 +33,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
 
     // DELETE /alarm — delete all alarms
     server->on("/alarm", HTTP_DELETE, [](AsyncWebServerRequest* req) {
-        logger.info("DELETE /alarm");
+        logger.infof("[%s] DELETE /alarm", req->client()->remoteIP().toString().c_str());
         _alarmMgr->removeAll();
         JsonDocument doc;
         doc["status"] = "cleared";
@@ -84,8 +84,9 @@ void alarmAPIBegin(AlarmManager& mgr) {
             }
 
             uint32_t id = _alarmMgr->add(hour, minute, pattern, rings, repeat, skipWeekends);
-            logger.infof("POST /alarm: created id=%u %02u:%02u repeat=%d", (unsigned)id,
-                         (unsigned)hour, (unsigned)minute, (int)repeat);
+            logger.infof("[%s] POST /alarm: created id=%u %02u:%02u repeat=%d",
+                         req->client()->remoteIP().toString().c_str(),
+                         (unsigned)id, (unsigned)hour, (unsigned)minute, (int)repeat);
 
             const std::vector<AlarmEntry>& all = _alarmMgr->getAll();
             JsonDocument resp;
@@ -137,6 +138,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
     apiAddNotFoundHandler([](AsyncWebServerRequest* request) -> bool {
         String url = request->url();
         if (!url.startsWith("/alarm/")) return false;
+        String ip = request->client()->remoteIP().toString();
 
         int method = request->method();
 
@@ -174,7 +176,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
 
             JsonDocument resp;
             if (_alarmMgr->update(id, hour, minute, pattern, rings, repeat, skipWeekends)) {
-                logger.infof("PUT /alarm/%u: updated", (unsigned)id);
+                logger.infof("[%s] PUT /alarm/%u: updated", ip.c_str(), (unsigned)id);
                 const std::vector<AlarmEntry>& all = _alarmMgr->getAll();
                 for (const auto& e : all) {
                     if (e.id == id) {
@@ -187,7 +189,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
                 request->send(200, "application/json", body);
                 eventsPublish("alarm/updated", body.c_str());
             } else {
-                logger.infof("PUT /alarm/%u: not found", (unsigned)id);
+                logger.infof("[%s] PUT /alarm/%u: not found", ip.c_str(), (unsigned)id);
                 resp["error"] = "not found";
                 sendJson(request, 404, resp);
             }
@@ -204,7 +206,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
             }
             JsonDocument doc;
             if (_alarmMgr->remove(id)) {
-                logger.infof("DELETE /alarm/%u: deleted", (unsigned)id);
+                logger.infof("[%s] DELETE /alarm/%u: deleted", ip.c_str(), (unsigned)id);
                 doc["status"] = "deleted";
                 doc["id"] = id;
                 String body;
@@ -212,7 +214,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
                 request->send(200, "application/json", body);
                 eventsPublish("alarm/deleted", body.c_str());
             } else {
-                logger.infof("DELETE /alarm/%u: not found", (unsigned)id);
+                logger.infof("[%s] DELETE /alarm/%u: not found", ip.c_str(), (unsigned)id);
                 doc["error"] = "not found";
                 sendJson(request, 404, doc);
             }

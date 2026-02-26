@@ -8,7 +8,7 @@ void deviceAPIBegin() {
     AsyncWebServer* server = apiGetServer();
 
     server->on("/ip", HTTP_GET, [](AsyncWebServerRequest* request) {
-        logger.info("GET /ip");
+        logger.infof("[%s] GET /ip", request->client()->remoteIP().toString().c_str());
         request->send(200, "text/plain", WiFi.localIP().toString());
     });
 }
