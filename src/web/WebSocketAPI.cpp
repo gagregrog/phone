@@ -48,4 +48,13 @@ void webSocketAPIBegin() {
 
 void webSocketLoop() {
     _ws.cleanupClients();
+
+    static unsigned long lastPingMs = 0;
+    unsigned long now = millis();
+    if (now - lastPingMs >= 10000) {
+        lastPingMs = now;
+        if (_ws.count() > 0) {
+            _ws.textAll("{\"topic\":\"ping\",\"data\":{}}");
+        }
+    }
 }

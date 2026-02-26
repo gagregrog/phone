@@ -309,8 +309,14 @@ function clearLogs() {
 
 // WebSocket — drives all live updates
 let ws = null;
+let lastMsgTime = Date.now();
 
 function connectWS() {
+  // Ghost connection: OPEN but no message for 15s — force close so badge goes Offline
+  if (ws && ws.readyState === WebSocket.OPEN && Date.now() - lastMsgTime > 15000) {
+    ws.close();
+    return;
+  }
   if (ws && ws.readyState !== WebSocket.CLOSED) return;
   ws = new WebSocket(`ws://${location.host}/ws`);
   const badge = document.getElementById('ws-badge');
@@ -318,6 +324,7 @@ function connectWS() {
   ws.onopen = () => {
     badge.textContent = 'Live';
     badge.className = '';
+    lastMsgTime = Date.now();
     refreshAll();
   };
 
@@ -327,6 +334,7 @@ function connectWS() {
   };
 
   ws.onmessage = (evt) => {
+    lastMsgTime = Date.now();
     try {
       const msg = JSON.parse(evt.data);
       if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time);
