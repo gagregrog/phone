@@ -74,10 +74,10 @@ void loop() {
     if (button.wasPressed()) {
         if (ringer.isRinging()) {
             ringer.ringStop();
-            eventsPublish("ring/stopped", "{}");
+            eventsPublish("ring/stopped", "{\"ringing\":false}");
         } else {
             ringer.ring(PATTERN_US);
-            eventsPublish("ring/started", "{\"pattern\":\"us\"}");
+            eventsPublish("ring/started", "{\"ringing\":true,\"pattern\":\"us\"}");
         }
     }
 

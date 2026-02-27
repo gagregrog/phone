@@ -19,10 +19,9 @@ void ringerAPIBegin(Ringer& ringer) {
         [&ringer](AsyncWebServerRequest* request) {
             logger.infof("[%s] POST /ring/stop", request->client()->remoteIP().toString().c_str());
             ringer.ringStop();
-            eventsPublish("ring/stopped", "{}");
-            JsonDocument doc;
-            doc["status"] = "stopped";
-            sendJson(request, 200, doc);
+            String body = "{\"ringing\":false}";
+            request->send(200, "application/json", body);
+            eventsPublish("ring/stopped", body.c_str());
         });
 
     server->on("/ring/status", HTTP_GET,
@@ -85,7 +84,8 @@ void ringerAPIBegin(Ringer& ringer) {
         ringer.ring(*p, cycles);
         logger.infof("[%s] POST %s: ringing %s", ip.c_str(), url.c_str(), p->name);
         JsonDocument doc;
-        doc["status"] = p->name;
+        doc["ringing"] = true;
+        doc["pattern"] = p->name;
         if (cycles > 0) doc["cycles"] = cycles;
         String body;
         serializeJson(doc, body);

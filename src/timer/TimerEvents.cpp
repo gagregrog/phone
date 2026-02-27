@@ -11,6 +11,7 @@ void timerEventsBegin(Timer& timer) {
         serializeJson(doc, body);
         eventsPublish("timer/expired", body.c_str());
         doc.clear();
+        doc["ringing"] = true;
         doc["pattern"] = info.patternName;
         String ringBody;
         serializeJson(doc, ringBody);

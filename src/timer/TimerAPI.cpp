@@ -114,10 +114,8 @@ void timerAPIBegin(Timer& timer) {
         formatDuration(durationMs / 1000, timeBuf, sizeof(timeBuf));
         logger.infof("[%s] POST %s: timer started (id=%u, %s, %s)", ip.c_str(), url.c_str(), (unsigned)id, timeBuf, p->name);
         JsonDocument doc;
-        doc["status"] = "started";
-        doc["id"] = id;
-        doc["duration"] = timeBuf;
-        doc["pattern"] = p->name;
+        TimerInfo info{id, durationMs, durationMs, p->name};
+        timerInfoFillJson(doc.to<JsonObject>(), info);
         String body;
         serializeJson(doc, body);
         request->send(200, "application/json", body);

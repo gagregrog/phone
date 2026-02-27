@@ -11,6 +11,7 @@ void alarmEventsBegin(AlarmManager& mgr) {
         serializeJson(doc, body);
         eventsPublish("alarm/fired", body.c_str());
         doc.clear();
+        doc["ringing"] = true;
         doc["pattern"] = e.patternName;
         String ringBody;
         serializeJson(doc, ringBody);

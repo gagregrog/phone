@@ -151,12 +151,17 @@ async function loadPatterns() {
   document.getElementById('a-pat').value = 'us';
 }
 
+function updateRinger(d) {
+  const el = document.getElementById('ring-status');
+  const cls = d.ringing ? 'don' : 'doff';
+  el.innerHTML = `<span class="dot ${cls}"></span>${d.ringing ? '<strong>Currently ringing</strong>' : 'Not ringing'}`;
+}
+
 async function loadRinger() {
   const data = await req('GET', '/ring/status');
   const el = document.getElementById('ring-status');
   if (!data) { el.innerHTML = '<span class="muted">Unknown</span>'; return; }
-  const cls = data.ringing ? 'don' : 'doff';
-  el.innerHTML = `<span class="dot ${cls}"></span>${data.ringing ? '<strong>Currently ringing</strong>' : 'Not ringing'}`;
+  updateRinger(data);
 }
 
 async function startRing(p) {
@@ -167,6 +172,29 @@ async function stopRing() {
   await req('POST', '/ring/stop');
 }
 
+function timerRow(t) {
+  return `<tr data-id="${t.id}"><td>${t.id}</td><td>${t.remaining}</td><td>${t.total}</td><td>${t.pattern}</td><td><button class="bd" onclick="cancelTimer(${t.id})">Cancel</button></td></tr>`;
+}
+
+function addTimerRow(t) {
+  const tb = document.getElementById('t-body');
+  if (!tb) return;
+  if (tb.rows.length === 1 && tb.rows[0].cells.length === 1) tb.innerHTML = '';
+  tb.insertAdjacentHTML('beforeend', timerRow(t));
+}
+
+function removeTimerRow(id) {
+  const row = document.querySelector(`#t-body tr[data-id="${id}"]`);
+  if (row) row.remove();
+  const tb = document.getElementById('t-body');
+  if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+}
+
+function clearTimerTable() {
+  const tb = document.getElementById('t-body');
+  if (tb) tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+}
+
 async function loadTimers() {
   const data = await req('GET', '/timer/status');
   const tb = document.getElementById('t-body');
@@ -175,10 +203,7 @@ async function loadTimers() {
     tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
     return;
   }
-  tb.innerHTML = data.map(t =>
-    `<tr><td>${t.id}</td><td>${t.remaining}</td><td>${t.total}</td><td>${t.pattern}</td>` +
-    `<td><button class="bd" onclick="cancelTimer(${t.id})">Cancel</button></td></tr>`
-  ).join('');
+  tb.innerHTML = data.map(timerRow).join('');
 }
 
 async function addTimer() {
@@ -197,17 +222,9 @@ async function cancelAllTimers() {
   await req('POST', '/timer/cancel');
 }
 
-async function loadAlarms() {
-  const data = await req('GET', '/alarm');
-  const tb = document.getElementById('a-body');
-  if (!tb) return;
-  if (!data || !data.length) {
-    tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
-    return;
-  }
-  tb.innerHTML = data.map(a => {
-    const j = JSON.stringify(a).replace(/'/g, "&#39;");
-    return `<tr>
+function alarmRow(a) {
+  const j = JSON.stringify(a).replace(/'/g, "&#39;");
+  return `<tr data-id="${a.id}">
       <td><strong>${a.time}</strong></td>
       <td>${a.pattern}</td>
       <td>${a.rings === 0 ? '&infin;' : a.rings}</td>
@@ -219,7 +236,42 @@ async function loadAlarms() {
         <button class="bd" onclick="deleteAlarm(${a.id})">Delete</button>
       </td>
     </tr>`;
-  }).join('');
+}
+
+function addAlarmRow(a) {
+  const tb = document.getElementById('a-body');
+  if (!tb) return;
+  if (tb.rows.length === 1 && tb.rows[0].cells.length === 1) tb.innerHTML = '';
+  tb.insertAdjacentHTML('beforeend', alarmRow(a));
+}
+
+function updateAlarmRow(a) {
+  const row = document.querySelector(`#a-body tr[data-id="${a.id}"]`);
+  if (row) row.outerHTML = alarmRow(a);
+  else addAlarmRow(a);
+}
+
+function removeAlarmRow(id) {
+  const row = document.querySelector(`#a-body tr[data-id="${id}"]`);
+  if (row) row.remove();
+  const tb = document.getElementById('a-body');
+  if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+}
+
+function clearAlarmTable() {
+  const tb = document.getElementById('a-body');
+  if (tb) tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+}
+
+async function loadAlarms() {
+  const data = await req('GET', '/alarm');
+  const tb = document.getElementById('a-body');
+  if (!tb) return;
+  if (!data || !data.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+    return;
+  }
+  tb.innerHTML = data.map(alarmRow).join('');
 }
 
 function editAlarm(a) {
@@ -274,12 +326,17 @@ async function clearAlarms() {
   await req('DELETE', '/alarm');
 }
 
+function updateClock(d) {
+  const el = document.getElementById('clock-status');
+  const cls = d.enabled ? 'don' : 'doff';
+  el.innerHTML = `<span class="dot ${cls}"></span>${d.enabled ? '<strong>Enabled</strong>' : 'Disabled'} &mdash; Mode: <strong>${d.mode}</strong>`;
+}
+
 async function loadClock() {
   const data = await req('GET', '/clock');
   const el = document.getElementById('clock-status');
   if (!data) { el.innerHTML = '<span class="muted">Unknown</span>'; return; }
-  const cls = data.enabled ? 'don' : 'doff';
-  el.innerHTML = `<span class="dot ${cls}"></span>${data.enabled ? '<strong>Enabled</strong>' : 'Disabled'} &mdash; Mode: <strong>${data.mode}</strong>`;
+  updateClock(data);
 }
 
 async function toggleClock() {
@@ -348,10 +405,15 @@ function connectWS() {
       const msg = JSON.parse(evt.data);
       if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time);
       else if (msg.topic === 'ws/clients') { const n = msg.data.count; document.getElementById('ws-clients').textContent = n + (n === 1 ? ' client' : ' clients'); }
-      else if (msg.topic.startsWith('ring/')) loadRinger();
-      else if (msg.topic.startsWith('timer/')) loadTimers();
-      else if (msg.topic.startsWith('alarm/')) loadAlarms();
-      else if (msg.topic.startsWith('clock/')) loadClock();
+      else if (msg.topic === 'ring/started' || msg.topic === 'ring/stopped') updateRinger(msg.data);
+      else if (msg.topic === 'timer/started') addTimerRow(msg.data);
+      else if (msg.topic === 'timer/cancelled' || msg.topic === 'timer/expired') removeTimerRow(msg.data.id);
+      else if (msg.topic === 'timer/cleared') clearTimerTable();
+      else if (msg.topic === 'alarm/created') addAlarmRow(msg.data);
+      else if (msg.topic === 'alarm/updated' || msg.topic === 'alarm/fired') updateAlarmRow(msg.data);
+      else if (msg.topic === 'alarm/deleted') removeAlarmRow(msg.data.id);
+      else if (msg.topic === 'alarm/cleared') clearAlarmTable();
+      else if (msg.topic === 'clock/updated') updateClock(msg.data);
     } catch(e) {}
   };
 }

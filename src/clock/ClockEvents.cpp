@@ -9,6 +9,6 @@ void clockEventsBegin(ClockManager& mgr) {
         doc["rings"] = rings;
         serializeJson(doc, buf, sizeof(buf));
         eventsPublish("clock/chimed", buf);
-        eventsPublish("ring/started", "{\"pattern\":\"chime\"}");
+        eventsPublish("ring/started", "{\"ringing\":true,\"pattern\":\"chime\"}");
     });
 }

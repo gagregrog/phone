@@ -93,7 +93,7 @@ void AlarmManager::tick() {
     if (minuteKey == _lastCheckedMinuteKey) return;
     _lastCheckedMinuteKey = minuteKey;
 
-    std::vector<AlarmEntry> fired;
+    std::vector<uint32_t> firedIds;
     bool changed = false;
     for (auto& e : _alarms) {
         if (!e.enabled) continue;
@@ -105,7 +105,7 @@ void AlarmManager::tick() {
             _ringer.ring(*p, e.rings);
         }
 
-        fired.push_back(e);
+        firedIds.push_back(e.id);
 
         if (!e.repeat) {
             e.enabled = false;
@@ -115,8 +115,10 @@ void AlarmManager::tick() {
 
     if (changed) save();
 
-    for (const auto& e : fired) {
-        if (_onFire) _onFire(e);
+    for (uint32_t id : firedIds) {
+        for (const auto& e : _alarms) {
+            if (e.id == id) { if (_onFire) _onFire(e); break; }
+        }
     }
 }
 
