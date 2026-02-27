@@ -146,6 +146,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <div id="hs-label" style="font-size:1rem;font-weight:600;color:#d1d5db">—</div>
       <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Hook switch</div>
       <div id="dial-label" style="font-size:.78rem;color:#6b7280;margin-top:6px">—</div>
+      <div id="phone-number" style="font-size:1.4rem;font-weight:700;letter-spacing:.12em;color:#60a5fa;margin-top:8px;min-height:1.6rem">—</div>
     </div>
   </div>
 </div>
@@ -436,6 +437,7 @@ function updateDialDigit(d) {
   const hole = document.getElementById('dh' + d.digit);
   if (hole) hole.setAttribute('fill', DIAL_HOLE_LIT);
   document.getElementById('dial-label').textContent = 'Dialed: ' + d.digit;
+  document.getElementById('phone-number').textContent = d.number;
   if (_dialResetTimer) clearTimeout(_dialResetTimer);
   _dialResetTimer = setTimeout(() => {
     _clearDialHoles();
@@ -444,13 +446,22 @@ function updateDialDigit(d) {
   }, 2000);
 }
 
-async function loadDial() {
-  const data = await req('GET', '/dial/status');
-  if (data && data.dialing) updateDialDialing();
+function updatePhoneClear() {
+  if (_dialResetTimer) { clearTimeout(_dialResetTimer); _dialResetTimer = null; }
+  _clearDialHoles();
+  _setDialFace(false);
+  document.getElementById('dial-label').textContent = '\u2014';
+  document.getElementById('phone-number').textContent = '\u2014';
+}
+
+async function loadPhone() {
+  const data = await req('GET', '/phone/status');
+  if (!data) return;
+  if (data.number) document.getElementById('phone-number').textContent = data.number;
 }
 
 async function refreshAll() {
-  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadDial()]);
+  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone()]);
 }
 
 function appendLog(level, msg, time) {
@@ -517,8 +528,9 @@ function connectWS() {
       else if (msg.topic === 'alarm/cleared') clearAlarmTable();
       else if (msg.topic === 'clock/updated') updateClock(msg.data);
       else if (msg.topic === 'handset/up' || msg.topic === 'handset/down') updateHandset(msg.data);
-      else if (msg.topic === 'dial/dialing') updateDialDialing();
-      else if (msg.topic === 'dial/digit') updateDialDigit(msg.data);
+      else if (msg.topic === 'phone/dialing') updateDialDialing();
+      else if (msg.topic === 'phone/digit') updateDialDigit(msg.data);
+      else if (msg.topic === 'phone/clear') updatePhoneClear();
     } catch(e) {}
   };
 }

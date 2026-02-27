@@ -8,8 +8,9 @@
 #include "hardware/HandsetMonitor.h"
 #include "hardware/HandsetEvents.h"
 #include "hardware/HandsetAPI.h"
-#include "hardware/DialEvents.h"
-#include "hardware/DialAPI.h"
+#include "hardware/DialManager.h"
+#include "hardware/DialManagerEvents.h"
+#include "hardware/DialManagerAPI.h"
 #include "ringer/Ringer.h"
 #include "ringer/RingPattern.h"
 #include "system/WifiSetup.h"
@@ -46,6 +47,7 @@ Timer timer(ringer);
 NVSAlarmStore alarmStore;
 AlarmManager  alarmMgr(ringer, alarmStore, clockGetLocalTime);
 ClockManager  clockMgr(ringer, clockGetLocalTime);
+DialManager   dialMgr(dialReader, handset);
 
 void setup() {
     Serial.begin(115200);
@@ -53,6 +55,7 @@ void setup() {
     button.begin();
     handset.begin();
     dialReader.begin();
+    dialMgr.begin();
 
     wifiSetupBegin("PhoneSetup");
     logger.begin();
@@ -60,7 +63,7 @@ void setup() {
     clockBegin(TZ_STRING);
     alarmMgr.init();
     handsetEventsBegin(handset);
-    dialEventsBegin(dialReader);
+    dialManagerEventsBegin(dialMgr);
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
@@ -73,7 +76,7 @@ void setup() {
     alarmAPIBegin(alarmMgr);
     clockAPIBegin(clockMgr);
     handsetAPIBegin(handset);
-    dialAPIBegin(dialReader);
+    dialManagerAPIBegin(dialMgr);
     webSocketAPIBegin();
     webUIBegin();
     apiStart();
@@ -94,6 +97,7 @@ void loop() {
     }
 
     dialReader.tick();
+    dialMgr.tick();
     logger.handle();
     ArduinoOTA.handle();
     webSocketLoop();
