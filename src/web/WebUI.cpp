@@ -114,20 +114,20 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <!-- Phone body -->
       <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <!-- Rotary dial face -->
-      <circle cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+      <circle id="dial-face" cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
       <!-- Dial center knob -->
       <circle cx="60" cy="82" r="7" fill="#1f2937" stroke="#374151" stroke-width="1"/>
       <!-- Finger holes: digit 1 at 12-o-clock, clockwise to 0 at 9-o-clock -->
-      <circle cx="60" cy="61" r="2.5" fill="#374151"/>
-      <circle cx="71" cy="64" r="2.5" fill="#374151"/>
-      <circle cx="78" cy="72" r="2.5" fill="#374151"/>
-      <circle cx="81" cy="82" r="2.5" fill="#374151"/>
-      <circle cx="78" cy="93" r="2.5" fill="#374151"/>
-      <circle cx="71" cy="100" r="2.5" fill="#374151"/>
-      <circle cx="60" cy="103" r="2.5" fill="#374151"/>
-      <circle cx="49" cy="100" r="2.5" fill="#374151"/>
-      <circle cx="42" cy="93" r="2.5" fill="#374151"/>
-      <circle cx="39" cy="82" r="2.5" fill="#374151"/>
+      <circle id="dh1" cx="60" cy="61" r="2.5" fill="#374151"/>
+      <circle id="dh2" cx="71" cy="64" r="2.5" fill="#374151"/>
+      <circle id="dh3" cx="78" cy="72" r="2.5" fill="#374151"/>
+      <circle id="dh4" cx="81" cy="82" r="2.5" fill="#374151"/>
+      <circle id="dh5" cx="78" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh6" cx="71" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh7" cx="60" cy="103" r="2.5" fill="#374151"/>
+      <circle id="dh8" cx="49" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh9" cx="42" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh0" cx="39" cy="82" r="2.5" fill="#374151"/>
       <!-- Stop peg (just clockwise of digit 1) -->
       <rect x="63" y="58" width="5" height="7" rx="2" fill="#4b5563"/>
       <!-- Cradle hooks -->
@@ -145,6 +145,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
     <div>
       <div id="hs-label" style="font-size:1rem;font-weight:600;color:#d1d5db">—</div>
       <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Hook switch</div>
+      <div id="dial-label" style="font-size:.78rem;color:#6b7280;margin-top:6px">—</div>
     </div>
   </div>
 </div>
@@ -403,8 +404,53 @@ async function loadHandset() {
   updateHandset(data);
 }
 
+let _dialResetTimer = null;
+const DIAL_HOLE_IDLE = '#374151';
+const DIAL_HOLE_LIT  = '#60a5fa';
+const DIAL_FACE_IDLE_STROKE = '#374151';
+const DIAL_FACE_ACTIVE_STROKE = '#3b82f6';
+
+function _setDialFace(active) {
+  const face = document.getElementById('dial-face');
+  if (face) {
+    face.setAttribute('stroke', active ? DIAL_FACE_ACTIVE_STROKE : DIAL_FACE_IDLE_STROKE);
+    face.setAttribute('stroke-width', active ? '2.5' : '1.5');
+  }
+}
+
+function _clearDialHoles() {
+  for (let d = 0; d <= 9; d++) {
+    const h = document.getElementById('dh' + d);
+    if (h) h.setAttribute('fill', DIAL_HOLE_IDLE);
+  }
+}
+
+function updateDialDialing() {
+  _setDialFace(true);
+  document.getElementById('dial-label').textContent = 'Dialing\u2026';
+}
+
+function updateDialDigit(d) {
+  _setDialFace(false);
+  _clearDialHoles();
+  const hole = document.getElementById('dh' + d.digit);
+  if (hole) hole.setAttribute('fill', DIAL_HOLE_LIT);
+  document.getElementById('dial-label').textContent = 'Dialed: ' + d.digit;
+  if (_dialResetTimer) clearTimeout(_dialResetTimer);
+  _dialResetTimer = setTimeout(() => {
+    _clearDialHoles();
+    document.getElementById('dial-label').textContent = '\u2014';
+    _dialResetTimer = null;
+  }, 2000);
+}
+
+async function loadDial() {
+  const data = await req('GET', '/dial/status');
+  if (data && data.dialing) updateDialDialing();
+}
+
 async function refreshAll() {
-  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset()]);
+  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadDial()]);
 }
 
 function appendLog(level, msg, time) {
@@ -471,6 +517,8 @@ function connectWS() {
       else if (msg.topic === 'alarm/cleared') clearAlarmTable();
       else if (msg.topic === 'clock/updated') updateClock(msg.data);
       else if (msg.topic === 'handset/up' || msg.topic === 'handset/down') updateHandset(msg.data);
+      else if (msg.topic === 'dial/dialing') updateDialDialing();
+      else if (msg.topic === 'dial/digit') updateDialDigit(msg.data);
     } catch(e) {}
   };
 }

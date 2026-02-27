@@ -8,6 +8,8 @@
 #include "hardware/HandsetMonitor.h"
 #include "hardware/HandsetEvents.h"
 #include "hardware/HandsetAPI.h"
+#include "hardware/DialEvents.h"
+#include "hardware/DialAPI.h"
 #include "ringer/Ringer.h"
 #include "ringer/RingPattern.h"
 #include "system/WifiSetup.h"
@@ -51,7 +53,6 @@ void setup() {
     button.begin();
     handset.begin();
     dialReader.begin();
-    dialReader.setOnDigit([](int d) { logger.infof("Dialed: %d", d); });
 
     wifiSetupBegin("PhoneSetup");
     logger.begin();
@@ -59,6 +60,7 @@ void setup() {
     clockBegin(TZ_STRING);
     alarmMgr.init();
     handsetEventsBegin(handset);
+    dialEventsBegin(dialReader);
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
@@ -71,6 +73,7 @@ void setup() {
     alarmAPIBegin(alarmMgr);
     clockAPIBegin(clockMgr);
     handsetAPIBegin(handset);
+    dialAPIBegin(dialReader);
     webSocketAPIBegin();
     webUIBegin();
     apiStart();

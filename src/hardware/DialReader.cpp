@@ -41,6 +41,7 @@ void DialReader::tick() {
             if (_dialActive) {
                 _state = DIALING;
                 _pulseCount = 0;
+                if (_onDialStart) _onDialStart();
             }
             break;
 

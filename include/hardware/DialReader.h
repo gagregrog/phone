@@ -4,16 +4,20 @@
 
 class DialReader {
 public:
-    using DigitCallback = std::function<void(int)>;
+    using DigitCallback     = std::function<void(int)>;
+    using DialStartCallback = std::function<void()>;
 
     void begin();
     void tick();
-    void setOnDigit(DigitCallback cb) { _onDigit = cb; }
+    void setOnDigit(DigitCallback cb)         { _onDigit     = cb; }
+    void setOnDialStart(DialStartCallback cb) { _onDialStart = cb; }
+    bool isDialing() const { return _state == DIALING; }
 
 private:
     enum State { IDLE, DIALING, DONE };
 
-    DigitCallback _onDigit;
+    DigitCallback     _onDigit;
+    DialStartCallback _onDialStart;
     State    _state           = IDLE;
     int      _pulseCount      = 0;
     uint32_t _settleStart     = 0;

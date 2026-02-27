@@ -148,6 +148,59 @@ void test_no_crash_without_callback(void) {
     TEST_PASS();
 }
 
+void test_dial_start_callback_fires(void) {
+    int startCount = 0;
+    dial->setOnDialStart([&startCount]() { startCount++; });
+
+    TEST_ASSERT_EQUAL(0, startCount);
+
+    // Dial rotation begins — should fire start callback exactly once
+    _mock_pin_values[PIN_DIAL_ACTIVE] = LOW;
+    advance(1);
+    advance(20); // debounce passes → IDLE→DIALING, start callback fires
+    TEST_ASSERT_EQUAL(1, startCount);
+
+    // Completing the dial must not fire start callback again
+    _mock_pin_values[PIN_DIAL_PULSE] = LOW;
+    advance(1); advance(5);
+    _mock_pin_values[PIN_DIAL_PULSE] = HIGH;
+    advance(1); advance(40);
+    _mock_pin_values[PIN_DIAL_ACTIVE] = HIGH;
+    advance(1); advance(20);
+    advance(150);
+    TEST_ASSERT_EQUAL(1, startCount);
+}
+
+void test_is_dialing_reflects_state(void) {
+    // Idle: not dialing
+    TEST_ASSERT_FALSE(dial->isDialing());
+
+    // Dial rotation starts
+    _mock_pin_values[PIN_DIAL_ACTIVE] = LOW;
+    advance(1); advance(20); // IDLE→DIALING
+    TEST_ASSERT_TRUE(dial->isDialing());
+
+    // Dial returns to rest (DIALING→DONE)
+    _mock_pin_values[PIN_DIAL_ACTIVE] = HIGH;
+    advance(1); advance(20);
+    TEST_ASSERT_FALSE(dial->isDialing());
+
+    // Settle completes
+    advance(150);
+    TEST_ASSERT_FALSE(dial->isDialing());
+}
+
+void test_start_callback_fires_per_digit(void) {
+    int startCount = 0;
+    dial->setOnDialStart([&startCount]() { startCount++; });
+
+    dialDigit(3);
+    TEST_ASSERT_EQUAL(1, startCount);
+
+    dialDigit(7);
+    TEST_ASSERT_EQUAL(2, startCount);
+}
+
 int main(int argc, char** argv) {
     UNITY_BEGIN();
 
@@ -160,6 +213,9 @@ int main(int argc, char** argv) {
     RUN_TEST(test_debounce_ignores_glitch_on_dial_active);
     RUN_TEST(test_multiple_sequential_digits);
     RUN_TEST(test_no_crash_without_callback);
+    RUN_TEST(test_dial_start_callback_fires);
+    RUN_TEST(test_is_dialing_reflects_state);
+    RUN_TEST(test_start_callback_fires_per_digit);
 
     return UNITY_END();
 }
