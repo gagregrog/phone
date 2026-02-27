@@ -405,6 +405,16 @@ async function loadHandset() {
   updateHandset(data);
 }
 
+function formatPhoneNumber(digits) {
+  const n = digits.length;
+  if (n === 0) return '\u2014';
+  if (n <= 3) return digits;
+  if (n <= 7) return digits.slice(0,3) + '-' + digits.slice(3);
+  if (n <= 10) return '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+  if (n === 11 && digits[0] === '1') return '+1 (' + digits.slice(1,4) + ') ' + digits.slice(4,7) + '-' + digits.slice(7);
+  return digits.match(/.{1,4}/g).join(' ');
+}
+
 let _dialResetTimer = null;
 const DIAL_HOLE_IDLE = '#374151';
 const DIAL_HOLE_LIT  = '#60a5fa';
@@ -437,7 +447,7 @@ function updateDialDigit(d) {
   const hole = document.getElementById('dh' + d.digit);
   if (hole) hole.setAttribute('fill', DIAL_HOLE_LIT);
   document.getElementById('dial-label').textContent = 'Dialed: ' + d.digit;
-  document.getElementById('phone-number').textContent = d.number;
+  document.getElementById('phone-number').textContent = formatPhoneNumber(d.number);
   if (_dialResetTimer) clearTimeout(_dialResetTimer);
   _dialResetTimer = setTimeout(() => {
     _clearDialHoles();
@@ -457,7 +467,7 @@ function updatePhoneClear() {
 async function loadPhone() {
   const data = await req('GET', '/phone/status');
   if (!data) return;
-  if (data.number) document.getElementById('phone-number').textContent = data.number;
+  if (data.number) document.getElementById('phone-number').textContent = formatPhoneNumber(data.number);
 }
 
 async function refreshAll() {
