@@ -138,6 +138,39 @@ If `.env` is missing, the build will warn and the firmware will use an empty OTA
 
 > **Note:** A VPN on the host machine will typically block OTA uploads. Disable it before uploading.
 
+## Partition Table
+
+The project uses a custom partition table (`partitions.csv`) that removes the unused SPIFFS partition and extends each OTA app slot from **1.25 MB → 1.875 MB**, giving substantially more headroom for firmware growth.
+
+| Partition | Offset     | Size       | Notes                          |
+| --------- | ---------- | ---------- | ------------------------------ |
+| nvs       | `0x009000` | 20 KB      | Key/value storage (Preferences)|
+| otadata   | `0x00E000` | 8 KB       | Tracks which OTA slot is active|
+| app0      | `0x010000` | 1.875 MB   | OTA slot 0                     |
+| app1      | `0x200000` | 1.875 MB   | OTA slot 1                     |
+
+### Applying the partition table
+
+The partition table lives outside the app partitions and **cannot be updated over OTA** — it requires a one-time serial flash. After that, OTA works normally.
+
+Connect the ESP32 via USB and run:
+
+```
+pio run -e esp32dev -t upload
+```
+
+This flashes the bootloader, partition table, and firmware. Your NVS data (WiFi credentials, saved alarms) is **preserved** — the NVS partition sits at the same offset and size as the factory default table and is not touched during a normal upload.
+
+### Reverting to the default partition table
+
+Remove `board_build.partitions = partitions.csv` from `platformio.ini` and delete `partitions.csv`, then flash via serial:
+
+```
+pio run -e esp32dev -t upload
+```
+
+NVS data is still preserved when reverting.
+
 ## Logs & Debugging
 
 Log output is written to three destinations simultaneously:
