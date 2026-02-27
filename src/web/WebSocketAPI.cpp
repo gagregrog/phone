@@ -10,6 +10,13 @@ static AsyncWebSocket _ws("/ws");
 static std::deque<String> _logBuffer;
 static const size_t LOG_BUFFER_SIZE = 100;
 
+static void publishClientCount() {
+    String payload = "{\"count\":";
+    payload += _ws.count();
+    payload += "}";
+    eventsPublish("ws/clients", payload.c_str());
+}
+
 void webSocketAPIBegin() {
     _ws.onEvent([](AsyncWebSocket*, AsyncWebSocketClient* client,
                    AwsEventType type, void*, uint8_t*, size_t) {
@@ -18,8 +25,10 @@ void webSocketAPIBegin() {
                 client->text(entry);
             }
             logger.infof("WS client %u connected", client->id());
+            publishClientCount();
         } else if (type == WS_EVT_DISCONNECT) {
             logger.infof("WS client %u disconnected", client->id());
+            publishClientCount();
         }
     });
 

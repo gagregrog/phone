@@ -45,6 +45,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   <h1>Phone Controller</h1>
   <div style="display:flex;gap:8px;align-items:center">
     <span id="ws-badge">Live</span>
+    <span id="ws-clients" style="font-size:.72rem;color:#6b7280"></span>
     <button class="bm" onclick="refreshAll()">Refresh</button>
   </div>
 </div>
@@ -346,6 +347,7 @@ function connectWS() {
     try {
       const msg = JSON.parse(evt.data);
       if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time);
+      else if (msg.topic === 'ws/clients') { const n = msg.data.count; document.getElementById('ws-clients').textContent = n + (n === 1 ? ' client' : ' clients'); }
       else if (msg.topic.startsWith('ring/')) loadRinger();
       else if (msg.topic.startsWith('timer/')) loadTimers();
       else if (msg.topic.startsWith('alarm/')) loadAlarms();
