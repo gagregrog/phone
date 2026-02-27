@@ -38,6 +38,11 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 #ws-badge.off{background:#450a0a;color:#fca5a5}
 #log-out{background:#0d1117;border-radius:4px;padding:10px;height:220px;overflow-y:auto;font-family:monospace;font-size:.78rem;line-height:1.6}
 .ll-info{color:#86efac}.ll-warn{color:#fbbf24}.ll-error{color:#f87171}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#1f2937;border-radius:12px;padding:36px 44px;border:1px solid #374151;position:relative;display:flex;flex-direction:column;align-items:center;gap:24px;max-height:90vh;overflow-y:auto}
+.mcls{position:absolute;top:10px;right:14px;background:none;border:none;color:#6b7280;font-size:1.4rem;cursor:pointer;padding:4px 8px;line-height:1}
+.mcls:hover{color:#d1d5db;filter:none}
 </style>
 </head>
 <body>
@@ -108,7 +113,10 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 
 <!-- Handset -->
 <div class="card">
-  <h2>Handset</h2>
+  <div class="hdr" style="margin-bottom:12px">
+    <h2 style="margin:0">Handset</h2>
+    <button class="bm" onclick="openHandsetModal()">Expand</button>
+  </div>
   <div style="display:flex;align-items:center;gap:20px">
     <svg id="phone-svg" viewBox="0 0 120 125" width="110" height="115" style="flex-shrink:0">
       <!-- Phone body -->
@@ -158,6 +166,52 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
     <button class="bm" onclick="clearLogs()">Clear</button>
   </div>
   <div id="log-out"></div>
+</div>
+
+<!-- Handset modal -->
+<div id="hs-modal" class="overlay" onclick="if(event.target===this)closeHandsetModal()">
+  <div class="modal">
+    <button class="mcls" onclick="closeHandsetModal()">&#x2715;</button>
+    <h2 style="margin:0">Handset</h2>
+    <svg viewBox="0 0 120 125" width="300" height="312" style="flex-shrink:0">
+      <!-- Phone body -->
+      <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Rotary dial face -->
+      <circle id="dial-face-m" cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+      <!-- Dial center knob -->
+      <circle cx="60" cy="82" r="7" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+      <!-- Finger holes -->
+      <circle id="dh1m" cx="60" cy="61" r="2.5" fill="#374151"/>
+      <circle id="dh2m" cx="71" cy="64" r="2.5" fill="#374151"/>
+      <circle id="dh3m" cx="78" cy="72" r="2.5" fill="#374151"/>
+      <circle id="dh4m" cx="81" cy="82" r="2.5" fill="#374151"/>
+      <circle id="dh5m" cx="78" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh6m" cx="71" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh7m" cx="60" cy="103" r="2.5" fill="#374151"/>
+      <circle id="dh8m" cx="49" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh9m" cx="42" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh0m" cx="39" cy="82" r="2.5" fill="#374151"/>
+      <!-- Stop peg -->
+      <rect x="63" y="58" width="5" height="7" rx="2" fill="#4b5563"/>
+      <!-- Cradle hooks -->
+      <rect x="21" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <rect x="79" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Handset DOWN -->
+      <g id="hs-down-m">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#6b7280" stroke="#9ca3af" stroke-width="1.5"/>
+      </g>
+      <!-- Handset UP -->
+      <g id="hs-up-m" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <div style="text-align:center">
+      <div id="hs-label-m" style="font-size:1.6rem;font-weight:600;color:#d1d5db">—</div>
+      <div style="font-size:.85rem;color:#6b7280;margin-top:4px">Hook switch</div>
+      <div id="dial-label-m" style="font-size:.9rem;color:#6b7280;margin-top:12px">—</div>
+      <div id="phone-number-m" style="font-size:2.2rem;font-weight:700;letter-spacing:.14em;color:#60a5fa;margin-top:10px;min-height:2.6rem">—</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -393,9 +447,12 @@ async function toggleClockMode() {
 }
 
 function updateHandset(d) {
-  document.getElementById('hs-down').style.display = d.offHook ? 'none' : '';
-  document.getElementById('hs-up').style.display   = d.offHook ? '' : 'none';
-  document.getElementById('hs-label').textContent  = d.offHook ? 'Off hook' : 'On hook';
+  document.getElementById('hs-down').style.display  = d.offHook ? 'none' : '';
+  document.getElementById('hs-up').style.display    = d.offHook ? '' : 'none';
+  document.getElementById('hs-label').textContent   = d.offHook ? 'Off hook' : 'On hook';
+  document.getElementById('hs-down-m').style.display = d.offHook ? 'none' : '';
+  document.getElementById('hs-up-m').style.display   = d.offHook ? '' : 'none';
+  document.getElementById('hs-label-m').textContent  = d.offHook ? 'Off hook' : 'On hook';
 }
 
 async function loadHandset() {
@@ -404,6 +461,16 @@ async function loadHandset() {
   if (!data) { if (label) label.textContent = 'Unknown'; return; }
   updateHandset(data);
 }
+
+function openHandsetModal() {
+  document.getElementById('hs-modal').classList.add('open');
+}
+
+function closeHandsetModal() {
+  document.getElementById('hs-modal').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHandsetModal(); });
 
 function formatPhoneNumber(digits) {
   const n = digits.length;
@@ -422,23 +489,27 @@ const DIAL_FACE_IDLE_STROKE = '#374151';
 const DIAL_FACE_ACTIVE_STROKE = '#3b82f6';
 
 function _setDialFace(active) {
-  const face = document.getElementById('dial-face');
-  if (face) {
-    face.setAttribute('stroke', active ? DIAL_FACE_ACTIVE_STROKE : DIAL_FACE_IDLE_STROKE);
-    face.setAttribute('stroke-width', active ? '2.5' : '1.5');
-  }
+  ['dial-face', 'dial-face-m'].forEach(id => {
+    const face = document.getElementById(id);
+    if (face) {
+      face.setAttribute('stroke', active ? DIAL_FACE_ACTIVE_STROKE : DIAL_FACE_IDLE_STROKE);
+      face.setAttribute('stroke-width', active ? '2.5' : '1.5');
+    }
+  });
 }
 
 function _clearDialHoles() {
   for (let d = 0; d <= 9; d++) {
-    const h = document.getElementById('dh' + d);
-    if (h) h.setAttribute('fill', DIAL_HOLE_IDLE);
+    [document.getElementById('dh'+d), document.getElementById('dh'+d+'m')].forEach(h => {
+      if (h) h.setAttribute('fill', DIAL_HOLE_IDLE);
+    });
   }
 }
 
 function updateDialDialing() {
   _setDialFace(true);
   document.getElementById('dial-label').textContent = 'Dialing\u2026';
+  document.getElementById('dial-label-m').textContent = 'Dialing\u2026';
 }
 
 function updateDialDigit(d) {
@@ -446,12 +517,18 @@ function updateDialDigit(d) {
   _clearDialHoles();
   const hole = document.getElementById('dh' + d.digit);
   if (hole) hole.setAttribute('fill', DIAL_HOLE_LIT);
+  const holem = document.getElementById('dh' + d.digit + 'm');
+  if (holem) holem.setAttribute('fill', DIAL_HOLE_LIT);
+  const formatted = formatPhoneNumber(d.number);
   document.getElementById('dial-label').textContent = 'Dialed: ' + d.digit;
-  document.getElementById('phone-number').textContent = formatPhoneNumber(d.number);
+  document.getElementById('phone-number').textContent = formatted;
+  document.getElementById('dial-label-m').textContent = 'Dialed: ' + d.digit;
+  document.getElementById('phone-number-m').textContent = formatted;
   if (_dialResetTimer) clearTimeout(_dialResetTimer);
   _dialResetTimer = setTimeout(() => {
     _clearDialHoles();
     document.getElementById('dial-label').textContent = '\u2014';
+    document.getElementById('dial-label-m').textContent = '\u2014';
     _dialResetTimer = null;
   }, 2000);
 }
@@ -462,12 +539,18 @@ function updatePhoneClear() {
   _setDialFace(false);
   document.getElementById('dial-label').textContent = '\u2014';
   document.getElementById('phone-number').textContent = '\u2014';
+  document.getElementById('dial-label-m').textContent = '\u2014';
+  document.getElementById('phone-number-m').textContent = '\u2014';
 }
 
 async function loadPhone() {
   const data = await req('GET', '/phone/status');
   if (!data) return;
-  if (data.number) document.getElementById('phone-number').textContent = formatPhoneNumber(data.number);
+  if (data.number) {
+    const formatted = formatPhoneNumber(data.number);
+    document.getElementById('phone-number').textContent = formatted;
+    document.getElementById('phone-number-m').textContent = formatted;
+  }
 }
 
 async function refreshAll() {
