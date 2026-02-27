@@ -118,32 +118,34 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <!-- Phone body -->
       <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <!-- Rotary dial face -->
-      <circle id="dial-face" cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+      <circle id="dial-face" cx="60" cy="82" r="24" fill="#111827"/>
+      <circle id="dial-ring" cx="60" cy="82" r="27" fill="none" stroke="#374151" stroke-width="1.5"/>
       <!-- Dial center knob -->
       <circle cx="60" cy="82" r="7" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-      <!-- Finger holes: digit 1 at 12-o-clock, clockwise to 0 at 9-o-clock -->
-      <circle id="dh1" cx="60" cy="61" r="2.5" fill="#374151"/>
-      <circle id="dh2" cx="71" cy="64" r="2.5" fill="#374151"/>
-      <circle id="dh3" cx="78" cy="72" r="2.5" fill="#374151"/>
-      <circle id="dh4" cx="81" cy="82" r="2.5" fill="#374151"/>
-      <circle id="dh5" cx="78" cy="93" r="2.5" fill="#374151"/>
-      <circle id="dh6" cx="71" cy="100" r="2.5" fill="#374151"/>
-      <circle id="dh7" cx="60" cy="103" r="2.5" fill="#374151"/>
-      <circle id="dh8" cx="49" cy="100" r="2.5" fill="#374151"/>
-      <circle id="dh9" cx="42" cy="93" r="2.5" fill="#374151"/>
-      <circle id="dh0" cx="39" cy="82" r="2.5" fill="#374151"/>
-      <!-- Stop peg (just clockwise of digit 1) -->
-      <rect x="63" y="58" width="5" height="7" rx="2" fill="#4b5563"/>
+      <!-- Finger holes: 1 at 1:30, counterclockwise to 0 at 4:30 (matches real phone layout) -->
+      <circle id="dh1" cx="75" cy="67" r="2.5" fill="#374151"/>
+      <circle id="dh2" cx="65" cy="62" r="2.5" fill="#374151"/>
+      <circle id="dh3" cx="55" cy="62" r="2.5" fill="#374151"/>
+      <circle id="dh4" cx="45" cy="67" r="2.5" fill="#374151"/>
+      <circle id="dh5" cx="40" cy="77" r="2.5" fill="#374151"/>
+      <circle id="dh6" cx="40" cy="87" r="2.5" fill="#374151"/>
+      <circle id="dh7" cx="45" cy="97" r="2.5" fill="#374151"/>
+      <circle id="dh8" cx="55" cy="102" r="2.5" fill="#374151"/>
+      <circle id="dh9" cx="65" cy="102" r="2.5" fill="#374151"/>
+      <circle id="dh0" cx="75" cy="97" r="2.5" fill="#374151"/>
+      <!-- Return catch (curved metal arc, just past hole 0 on the clockwise side) -->
+      <path d="M 82 93 Q 79 90 77 92 Q 78 94 81 95 Z" fill="#4b5563"/>
       <!-- Cradle hooks -->
       <rect x="21" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <rect x="79" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <!-- Handset DOWN (resting in cradle) -->
       <g id="hs-down">
-        <rect x="18" y="31" width="84" height="14" rx="7" fill="#6b7280" stroke="#9ca3af" stroke-width="1.5"/>
+        <!-- profile: semi-ellipse cups, slight arch on spine, narrow handle -->
+        <path d="M 22 32 C 40 32 78 28 98 32 C 112 34 116 54 98 54 C 90 54 88 46 82 44 C 76 42 44 42 38 44 C 32 46 30 54 22 54 C 4 54 8 34 22 32 Z" fill="#1f2937" stroke="#6b7280" stroke-width="1.5"/>
       </g>
       <!-- Handset UP (off hook — lifted and tilted) -->
       <g id="hs-up" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
-        <rect x="18" y="31" width="84" height="14" rx="7" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
+        <path d="M 22 32 C 40 32 78 28 98 32 C 112 34 116 54 98 54 C 90 54 88 46 82 44 C 76 42 44 42 38 44 C 32 46 30 54 22 54 C 4 54 8 34 22 32 Z" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
       </g>
     </svg>
     <div>
@@ -173,32 +175,33 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <!-- Phone body -->
       <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <!-- Rotary dial face -->
-      <circle id="dial-face-m" cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+      <circle id="dial-face-m" cx="60" cy="82" r="24" fill="#111827"/>
+      <circle id="dial-ring-m" cx="60" cy="82" r="27" fill="none" stroke="#374151" stroke-width="1.5"/>
       <!-- Dial center knob -->
       <circle cx="60" cy="82" r="7" fill="#1f2937" stroke="#374151" stroke-width="1"/>
-      <!-- Finger holes -->
-      <circle id="dh1m" cx="60" cy="61" r="2.5" fill="#374151"/>
-      <circle id="dh2m" cx="71" cy="64" r="2.5" fill="#374151"/>
-      <circle id="dh3m" cx="78" cy="72" r="2.5" fill="#374151"/>
-      <circle id="dh4m" cx="81" cy="82" r="2.5" fill="#374151"/>
-      <circle id="dh5m" cx="78" cy="93" r="2.5" fill="#374151"/>
-      <circle id="dh6m" cx="71" cy="100" r="2.5" fill="#374151"/>
-      <circle id="dh7m" cx="60" cy="103" r="2.5" fill="#374151"/>
-      <circle id="dh8m" cx="49" cy="100" r="2.5" fill="#374151"/>
-      <circle id="dh9m" cx="42" cy="93" r="2.5" fill="#374151"/>
-      <circle id="dh0m" cx="39" cy="82" r="2.5" fill="#374151"/>
-      <!-- Stop peg -->
-      <rect x="63" y="58" width="5" height="7" rx="2" fill="#4b5563"/>
+      <!-- Finger holes: 1 at 1:30, counterclockwise to 0 at 4:30 (matches real phone layout) -->
+      <circle id="dh1m" cx="75" cy="67" r="2.5" fill="#374151"/>
+      <circle id="dh2m" cx="65" cy="62" r="2.5" fill="#374151"/>
+      <circle id="dh3m" cx="55" cy="62" r="2.5" fill="#374151"/>
+      <circle id="dh4m" cx="45" cy="67" r="2.5" fill="#374151"/>
+      <circle id="dh5m" cx="40" cy="77" r="2.5" fill="#374151"/>
+      <circle id="dh6m" cx="40" cy="87" r="2.5" fill="#374151"/>
+      <circle id="dh7m" cx="45" cy="97" r="2.5" fill="#374151"/>
+      <circle id="dh8m" cx="55" cy="102" r="2.5" fill="#374151"/>
+      <circle id="dh9m" cx="65" cy="102" r="2.5" fill="#374151"/>
+      <circle id="dh0m" cx="75" cy="97" r="2.5" fill="#374151"/>
+      <!-- Return catch (curved metal arc, just past hole 0 on the clockwise side) -->
+      <path d="M 82 93 Q 79 90 77 92 Q 78 94 81 95 Z" fill="#4b5563"/>
       <!-- Cradle hooks -->
       <rect x="21" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <rect x="79" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <!-- Handset DOWN -->
       <g id="hs-down-m">
-        <rect x="18" y="31" width="84" height="14" rx="7" fill="#6b7280" stroke="#9ca3af" stroke-width="1.5"/>
+        <path d="M 22 32 C 40 32 78 28 98 32 C 112 34 116 54 98 54 C 90 54 88 46 82 44 C 76 42 44 42 38 44 C 32 46 30 54 22 54 C 4 54 8 34 22 32 Z" fill="#1f2937" stroke="#6b7280" stroke-width="1.5"/>
       </g>
       <!-- Handset UP -->
       <g id="hs-up-m" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
-        <rect x="18" y="31" width="84" height="14" rx="7" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
+        <path d="M 22 32 C 40 32 78 28 98 32 C 112 34 116 54 98 54 C 90 54 88 46 82 44 C 76 42 44 42 38 44 C 32 46 30 54 22 54 C 4 54 8 34 22 32 Z" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
       </g>
     </svg>
     <div style="text-align:center">
@@ -485,11 +488,11 @@ const DIAL_FACE_IDLE_STROKE = '#374151';
 const DIAL_FACE_ACTIVE_STROKE = '#3b82f6';
 
 function _setDialFace(active) {
-  ['dial-face', 'dial-face-m'].forEach(id => {
-    const face = document.getElementById(id);
-    if (face) {
-      face.setAttribute('stroke', active ? DIAL_FACE_ACTIVE_STROKE : DIAL_FACE_IDLE_STROKE);
-      face.setAttribute('stroke-width', active ? '2.5' : '1.5');
+  ['dial-ring', 'dial-ring-m'].forEach(id => {
+    const ring = document.getElementById(id);
+    if (ring) {
+      ring.setAttribute('stroke', active ? DIAL_FACE_ACTIVE_STROKE : DIAL_FACE_IDLE_STROKE);
+      ring.setAttribute('stroke-width', active ? '2.5' : '1.5');
     }
   });
 }
