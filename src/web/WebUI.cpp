@@ -106,6 +106,49 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   </div>
 </div>
 
+<!-- Handset -->
+<div class="card">
+  <h2>Handset</h2>
+  <div style="display:flex;align-items:center;gap:20px">
+    <svg id="phone-svg" viewBox="0 0 120 125" width="110" height="115" style="flex-shrink:0">
+      <!-- Phone body -->
+      <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Rotary dial face -->
+      <circle cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+      <!-- Dial center knob -->
+      <circle cx="60" cy="82" r="7" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+      <!-- Finger holes: digit 1 at 12-o-clock, clockwise to 0 at 9-o-clock -->
+      <circle cx="60" cy="61" r="2.5" fill="#374151"/>
+      <circle cx="71" cy="64" r="2.5" fill="#374151"/>
+      <circle cx="78" cy="72" r="2.5" fill="#374151"/>
+      <circle cx="81" cy="82" r="2.5" fill="#374151"/>
+      <circle cx="78" cy="93" r="2.5" fill="#374151"/>
+      <circle cx="71" cy="100" r="2.5" fill="#374151"/>
+      <circle cx="60" cy="103" r="2.5" fill="#374151"/>
+      <circle cx="49" cy="100" r="2.5" fill="#374151"/>
+      <circle cx="42" cy="93" r="2.5" fill="#374151"/>
+      <circle cx="39" cy="82" r="2.5" fill="#374151"/>
+      <!-- Stop peg (just clockwise of digit 1) -->
+      <rect x="63" y="58" width="5" height="7" rx="2" fill="#4b5563"/>
+      <!-- Cradle hooks -->
+      <rect x="21" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <rect x="79" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Handset DOWN (resting in cradle) -->
+      <g id="hs-down">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#6b7280" stroke="#9ca3af" stroke-width="1.5"/>
+      </g>
+      <!-- Handset UP (off hook — lifted and tilted) -->
+      <g id="hs-up" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <div>
+      <div id="hs-label" style="font-size:1rem;font-weight:600;color:#d1d5db">—</div>
+      <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Hook switch</div>
+    </div>
+  </div>
+</div>
+
 <!-- Logs -->
 <div class="card">
   <div class="hdr" style="margin-bottom:8px">
@@ -347,8 +390,21 @@ async function toggleClockMode() {
   await req('POST', '/clock/mode/toggle');
 }
 
+function updateHandset(d) {
+  document.getElementById('hs-down').style.display = d.offHook ? 'none' : '';
+  document.getElementById('hs-up').style.display   = d.offHook ? '' : 'none';
+  document.getElementById('hs-label').textContent  = d.offHook ? 'Off hook' : 'On hook';
+}
+
+async function loadHandset() {
+  const data = await req('GET', '/handset/status');
+  const label = document.getElementById('hs-label');
+  if (!data) { if (label) label.textContent = 'Unknown'; return; }
+  updateHandset(data);
+}
+
 async function refreshAll() {
-  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock()]);
+  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset()]);
 }
 
 function appendLog(level, msg, time) {
@@ -414,6 +470,7 @@ function connectWS() {
       else if (msg.topic === 'alarm/deleted') removeAlarmRow(msg.data.id);
       else if (msg.topic === 'alarm/cleared') clearAlarmTable();
       else if (msg.topic === 'clock/updated') updateClock(msg.data);
+      else if (msg.topic === 'handset/up' || msg.topic === 'handset/down') updateHandset(msg.data);
     } catch(e) {}
   };
 }

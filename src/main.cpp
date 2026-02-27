@@ -5,6 +5,9 @@
 #include "hardware/MotorDriver.h"
 #include "hardware/ButtonTrigger.h"
 #include "hardware/DialReader.h"
+#include "hardware/HandsetMonitor.h"
+#include "hardware/HandsetEvents.h"
+#include "hardware/HandsetAPI.h"
 #include "ringer/Ringer.h"
 #include "ringer/RingPattern.h"
 #include "system/WifiSetup.h"
@@ -35,6 +38,7 @@
 MotorDriver motor(PIN_MOTOR_IN1, PIN_MOTOR_IN2, PIN_MOTOR_ENA);
 ButtonTrigger button(PIN_TRIGGER);
 DialReader dialReader;
+HandsetMonitor handset(PIN_HANDSET);
 Ringer ringer(motor);
 Timer timer(ringer);
 NVSAlarmStore alarmStore;
@@ -45,6 +49,7 @@ void setup() {
     Serial.begin(115200);
     motor.begin();
     button.begin();
+    handset.begin();
     dialReader.begin();
     dialReader.setOnDigit([](int d) { logger.infof("Dialed: %d", d); });
 
@@ -53,6 +58,7 @@ void setup() {
 
     clockBegin(TZ_STRING);
     alarmMgr.init();
+    handsetEventsBegin(handset);
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
@@ -64,6 +70,7 @@ void setup() {
     timerAPIBegin(timer);
     alarmAPIBegin(alarmMgr);
     clockAPIBegin(clockMgr);
+    handsetAPIBegin(handset);
     webSocketAPIBegin();
     webUIBegin();
     apiStart();
@@ -71,6 +78,7 @@ void setup() {
 
 void loop() {
     button.update();
+    handset.update();
 
     if (button.wasPressed()) {
         if (ringer.isRinging()) {

@@ -10,6 +10,7 @@ ESP32-based controller for an ITT C4 Bell Ringer telephone. Drives the bell ring
 - L298N dual H-bridge motor driver module
 - ITT C4 Bell Ringer telephone
 - Momentary push button (normally open)
+- Handset hook switch (normally open)
 - External power supply for the L298N (voltage depends on your bell ringer motor)
 
 ### Wiring
@@ -53,11 +54,11 @@ No external pull-up resistor is needed — the firmware enables the ESP32's inte
 
 #### Rotary Dial
 
-| Dial Contact  | Connection    |
-| ------------- | ------------- |
-| Off-normal    | ESP32 GPIO 26 |
-| Pulse         | ESP32 GPIO 33 |
-| Common (GND)  | ESP32 GND     |
+| Dial Contact | Connection    |
+| ------------ | ------------- |
+| Off-normal   | ESP32 GPIO 26 |
+| Pulse        | ESP32 GPIO 33 |
+| Common (GND) | ESP32 GND     |
 
 No external pull-up resistors are needed — the firmware enables the ESP32's internal pull-ups on both pins.
 
@@ -65,6 +66,15 @@ No external pull-up resistors are needed — the firmware enables the ESP32's in
 - **Pulse** contact pulses LOW once per digit as the dial springs back (10 pulses = 0).
 
 When a digit is dialed it is logged via the standard log output.
+
+#### Hook Switch (Handset)
+
+| Hook Switch Pin | Connection    |
+| --------------- | ------------- |
+| One side        | ESP32 GPIO 13 |
+| Other side      | ESP32 GND     |
+
+No external pull-up resistor is needed — the firmware enables the ESP32's internal pull-up on GPIO 13. The switch is open when the handset is resting in the cradle (on hook) and closes when the handset is lifted (off hook), pulling GPIO 13 LOW.
 
 #### Pin Reference
 
@@ -99,15 +109,15 @@ PORT=/dev/tty.usbserial-xxxx    # serial port for USB upload and monitoring
 
 `TZ_STRING` is a POSIX timezone string that controls both the UTC offset and DST rules. Common examples:
 
-| Timezone | `TZ_STRING` |
-| -------- | ----------- |
-| US Eastern | `EST5EDT,M3.2.0,M11.1.0` |
-| US Central | `CST6CDT,M3.2.0,M11.1.0` |
-| US Mountain | `MST7MDT,M3.2.0,M11.1.0` |
-| US Pacific | `PST8PDT,M3.2.0,M11.1.0` |
-| UK | `GMT0BST,M3.5.0/1,M10.5.0` |
+| Timezone       | `TZ_STRING`                  |
+| -------------- | ---------------------------- |
+| US Eastern     | `EST5EDT,M3.2.0,M11.1.0`     |
+| US Central     | `CST6CDT,M3.2.0,M11.1.0`     |
+| US Mountain    | `MST7MDT,M3.2.0,M11.1.0`     |
+| US Pacific     | `PST8PDT,M3.2.0,M11.1.0`     |
+| UK             | `GMT0BST,M3.5.0/1,M10.5.0`   |
 | Central Europe | `CET-1CEST,M3.5.0,M10.5.0/3` |
-| UTC | `UTC0` |
+| UTC            | `UTC0`                       |
 
 If `TZ_STRING` is omitted from `.env`, the firmware defaults to `UTC0`.
 
@@ -177,17 +187,17 @@ The physical button acts as a toggle:
 
 Multiple country-specific ringing cadences are available:
 
-| Pattern | Name | Cadence |
-| ------- | ---- | ------- |
-| US | `us` | 2s on, 4s off |
-| UK | `uk` | 0.4s on, 0.2s off, 0.4s on, 2s off (double ring) |
-| Germany | `de` | 1s on, 4s off |
-| France | `fr` | 1.5s on, 3.5s off |
-| Japan | `jp` | 1s on, 2s off |
-| Italy | `it` | 1s on, 1s off, 1s on, 3s off (double ring) |
-| Sweden | `se` | 1s on, 5s off |
-| Chirp | `chirp` | 0.15s on, 0.1s off, 0.15s on, 0.6s off (two quick bursts) |
-| Chime | `chime` | 0.4s on, 0.4s off (used by hourly clock chime) |
+| Pattern | Name    | Cadence                                                   |
+| ------- | ------- | --------------------------------------------------------- |
+| US      | `us`    | 2s on, 4s off                                             |
+| UK      | `uk`    | 0.4s on, 0.2s off, 0.4s on, 2s off (double ring)          |
+| Germany | `de`    | 1s on, 4s off                                             |
+| France  | `fr`    | 1.5s on, 3.5s off                                         |
+| Japan   | `jp`    | 1s on, 2s off                                             |
+| Italy   | `it`    | 1s on, 1s off, 1s on, 3s off (double ring)                |
+| Sweden  | `se`    | 1s on, 5s off                                             |
+| Chirp   | `chirp` | 0.15s on, 0.1s off, 0.15s on, 0.6s off (two quick bursts) |
+| Chime   | `chime` | 0.4s on, 0.4s off (used by hourly clock chime)            |
 
 ## Web UI
 
@@ -197,6 +207,7 @@ A browser-based dashboard is served at `http://phone.local/` (port 80). It provi
 - **Timers** — view active timers with countdowns, add new timers, cancel individually or all at once
 - **Alarms** — view scheduled alarms, add new alarms, edit existing alarms in-place, delete individually or all
 - **Hourly chime** — see enabled state and mode, toggle on/off, switch between `n_chimes` and `single` mode
+- **Handset** — live on-hook / off-hook status displayed as an animated SVG of the rotary phone; updates in real time via WebSocket
 - **Logs** — live streaming log console with color-coded severity (info/warn/error) and timestamps. Displays the last 100 log entries buffered on the device, so recent history is visible immediately on page load without needing to wait for new messages. A **Clear** button wipes the display.
 
 The dashboard connects via WebSocket (`ws://phone.local/ws`) and updates in real time whenever state changes — including hardware-triggered events like timer expiry, alarm fires, button presses, and hourly chimes. A **Live / Offline** badge in the header shows the connection status; the page reconnects automatically if the connection drops.
@@ -269,7 +280,7 @@ curl http://phone.local/ring/patterns
 Response:
 
 ```json
-["us","uk","de","fr","jp","it","se","chirp"]
+["us", "uk", "de", "fr", "jp", "it", "se", "chirp"]
 ```
 
 ### Timer
@@ -301,13 +312,13 @@ Duration supports `h` (hours), `m` (minutes), and `s` (seconds) suffixes, which 
 
 When combining units, sub-units are capped at 59 (e.g. `1h90m` is invalid — use `2h30m`).
 
-| Example | Duration |
-| ------- | -------- |
-| `20m` | 20 minutes |
-| `90s` | 90 seconds |
-| `1h30m` | 1 hour 30 minutes |
+| Example | Duration            |
+| ------- | ------------------- |
+| `20m`   | 20 minutes          |
+| `90s`   | 90 seconds          |
+| `1h30m` | 1 hour 30 minutes   |
 | `1m30s` | 1 minute 30 seconds |
-| `2h` | 2 hours |
+| `2h`    | 2 hours             |
 
 ```
 curl -X POST http://phone.local/timer/20m
@@ -371,8 +382,24 @@ Response:
 
 ```json
 [
-  {"id": 1, "time": "08:30", "pattern": "us", "rings": 3, "repeat": true, "skipWeekends": false, "enabled": true},
-  {"id": 2, "time": "17:00", "pattern": "chirp", "rings": 1, "repeat": false, "skipWeekends": false, "enabled": true}
+  {
+    "id": 1,
+    "time": "08:30",
+    "pattern": "us",
+    "rings": 3,
+    "repeat": true,
+    "skipWeekends": false,
+    "enabled": true
+  },
+  {
+    "id": 2,
+    "time": "17:00",
+    "pattern": "chirp",
+    "rings": 1,
+    "repeat": false,
+    "skipWeekends": false,
+    "enabled": true
+  }
 ]
 ```
 
@@ -386,21 +413,29 @@ curl -X POST http://phone.local/alarm \
   -d '{"hour": 8, "minute": 30, "pattern": "us", "rings": 3, "repeat": true, "skipWeekends": false}'
 ```
 
-| Field | Type | Description |
-| ----- | ---- | ----------- |
-| `hour` | int | 0–23 local time |
-| `minute` | int | 0–59 |
-| `pattern` | string | Ring pattern name (see table above) |
-| `rings` | int | Number of ring cycles (0 = infinite) |
-| `repeat` | bool | `true` to repeat daily; `false` for one-off |
-| `skipWeekends` | bool | Skip Saturday and Sunday when `true` |
+| Field          | Type   | Description                                 |
+| -------------- | ------ | ------------------------------------------- |
+| `hour`         | int    | 0–23 local time                             |
+| `minute`       | int    | 0–59                                        |
+| `pattern`      | string | Ring pattern name (see table above)         |
+| `rings`        | int    | Number of ring cycles (0 = infinite)        |
+| `repeat`       | bool   | `true` to repeat daily; `false` for one-off |
+| `skipWeekends` | bool   | Skip Saturday and Sunday when `true`        |
 
 One-off alarms (`repeat: false`) require NTP to be synced and the target time to be in the future. Returns `503` if NTP is not yet synced, `400` if the time has already passed today. Repeating alarms are persisted to flash and restored after reboot; one-off alarms live in memory only.
 
 Response:
 
 ```json
-{"id": 1, "time": "08:30", "pattern": "us", "rings": 3, "repeat": true, "skipWeekends": false, "enabled": true}
+{
+  "id": 1,
+  "time": "08:30",
+  "pattern": "us",
+  "rings": 3,
+  "repeat": true,
+  "skipWeekends": false,
+  "enabled": true
+}
 ```
 
 #### `PUT /alarm/{id}`
@@ -426,7 +461,7 @@ curl -X DELETE http://phone.local/alarm/1
 Response:
 
 ```json
-{"status": "deleted", "id": 1}
+{ "status": "deleted", "id": 1 }
 ```
 
 #### `DELETE /alarm`
@@ -440,7 +475,7 @@ curl -X DELETE http://phone.local/alarm
 Response:
 
 ```json
-{"status": "cleared"}
+{ "status": "cleared" }
 ```
 
 ### Clock
@@ -449,10 +484,10 @@ The hourly chime strikes at the top of each hour using the `chime` pattern (400m
 
 Two modes are available:
 
-| Mode | Behavior |
-| ---- | -------- |
+| Mode       | Behavior                                                                  |
+| ---------- | ------------------------------------------------------------------------- |
 | `n_chimes` | Rings N times matching the 12-hour clock (1 at 1:00, 12 at noon/midnight) |
-| `single` | Rings once at the top of every hour |
+| `single`   | Rings once at the top of every hour                                       |
 
 #### `GET /clock`
 
@@ -465,7 +500,7 @@ curl http://phone.local/clock
 Response:
 
 ```json
-{"enabled": false, "mode": "n_chimes"}
+{ "enabled": false, "mode": "n_chimes" }
 ```
 
 #### `POST /clock/toggle`
@@ -479,7 +514,7 @@ curl -X POST http://phone.local/clock/toggle
 Response:
 
 ```json
-{"enabled": false, "mode": "n_chimes"}
+{ "enabled": false, "mode": "n_chimes" }
 ```
 
 #### `POST /clock/mode/toggle`
@@ -493,8 +528,26 @@ curl -X POST http://phone.local/clock/mode/toggle
 Response:
 
 ```json
-{"enabled": true, "mode": "single"}
+{ "enabled": true, "mode": "single" }
 ```
+
+### Handset
+
+#### `GET /handset/status`
+
+Return the current hook switch state.
+
+```
+curl http://phone.local/handset/status
+```
+
+Response:
+
+```json
+{ "offHook": false }
+```
+
+`offHook` is `true` when the handset is lifted (off hook) and `false` when it is resting in the cradle (on hook). State changes are also broadcast over WebSocket as `handset/up` and `handset/down` events.
 
 ### Device
 

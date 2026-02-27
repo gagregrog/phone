@@ -11,3 +11,6 @@
 // Rotary dial
 #define PIN_DIAL_ACTIVE 26  // LOW = dial is off normal (dialing in progress)
 #define PIN_DIAL_PULSE  33  // pulses LOW once per digit as dial returns
+
+// Handset hook switch
+#define PIN_HANDSET 13  // LOW = off hook (handset lifted), HIGH = on hook
