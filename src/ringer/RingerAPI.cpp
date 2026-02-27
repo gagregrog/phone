@@ -1,6 +1,7 @@
 #include "ringer/RingerAPI.h"
+#include "ringer/RingerJSON.h"
+#include "ringer/RingerEvents.h"
 #include "web/API.h"
-#include "web/Events.h"
 #include "system/Logger.h"
 #include "ringer/RingPattern.h"
 #include <ESPAsyncWebServer.h>
@@ -19,9 +20,10 @@ void ringerAPIBegin(Ringer& ringer) {
         [&ringer](AsyncWebServerRequest* request) {
             logger.infof("[%s] POST /ring/stop", request->client()->remoteIP().toString().c_str());
             ringer.ringStop();
-            String body = "{\"ringing\":false}";
-            request->send(200, "application/json", body);
-            eventsPublish("ring/stopped", body.c_str());
+            JsonDocument doc;
+            ringStoppedFillJson(doc.to<JsonObject>());
+            sendJson(request, 200, doc);
+            publishRingStopped();
         });
 
     server->on("/ring/status", HTTP_GET,
@@ -84,13 +86,10 @@ void ringerAPIBegin(Ringer& ringer) {
         ringer.ring(*p, cycles);
         logger.infof("[%s] POST %s: ringing %s", ip.c_str(), url.c_str(), p->name);
         JsonDocument doc;
-        doc["ringing"] = true;
-        doc["pattern"] = p->name;
+        ringStartedFillJson(doc.to<JsonObject>(), p->name);
         if (cycles > 0) doc["cycles"] = cycles;
-        String body;
-        serializeJson(doc, body);
-        request->send(200, "application/json", body);
-        eventsPublish("ring/started", body.c_str());
+        sendJson(request, 200, doc);
+        publishRingStarted(p->name);
         return true;
     });
 }

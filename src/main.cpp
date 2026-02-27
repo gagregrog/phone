@@ -25,6 +25,7 @@
 #include "clock/ClockEvents.h"
 #include "web/WebUI.h"
 #include "web/Events.h"
+#include "ringer/RingerEvents.h"
 #include "web/WebSocketAPI.h"
 
 #ifndef TZ_STRING
@@ -74,10 +75,10 @@ void loop() {
     if (button.wasPressed()) {
         if (ringer.isRinging()) {
             ringer.ringStop();
-            eventsPublish("ring/stopped", "{\"ringing\":false}");
+            publishRingStopped();
         } else {
             ringer.ring(PATTERN_US);
-            eventsPublish("ring/started", "{\"ringing\":true,\"pattern\":\"us\"}");
+            publishRingStarted("us");
         }
     }
 

@@ -1,5 +1,6 @@
 #include "timer/TimerEvents.h"
 #include "timer/TimerJSON.h"
+#include "ringer/RingerEvents.h"
 #include "web/Events.h"
 #include <ArduinoJson.h>
 
@@ -10,11 +11,6 @@ void timerEventsBegin(Timer& timer) {
         String body;
         serializeJson(doc, body);
         eventsPublish("timer/expired", body.c_str());
-        doc.clear();
-        doc["ringing"] = true;
-        doc["pattern"] = info.patternName;
-        String ringBody;
-        serializeJson(doc, ringBody);
-        eventsPublish("ring/started", ringBody.c_str());
+        publishRingStarted(info.patternName);
     });
 }

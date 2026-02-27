@@ -1,5 +1,6 @@
 #include "alarm/AlarmEvents.h"
 #include "alarm/AlarmJSON.h"
+#include "ringer/RingerEvents.h"
 #include "web/Events.h"
 #include <ArduinoJson.h>
 
@@ -10,11 +11,6 @@ void alarmEventsBegin(AlarmManager& mgr) {
         String body;
         serializeJson(doc, body);
         eventsPublish("alarm/fired", body.c_str());
-        doc.clear();
-        doc["ringing"] = true;
-        doc["pattern"] = e.patternName;
-        String ringBody;
-        serializeJson(doc, ringBody);
-        eventsPublish("ring/started", ringBody.c_str());
+        publishRingStarted(e.patternName);
     });
 }

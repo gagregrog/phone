@@ -1,4 +1,5 @@
 #include "clock/ClockEvents.h"
+#include "ringer/RingerEvents.h"
 #include "web/Events.h"
 #include <ArduinoJson.h>
 
@@ -9,6 +10,6 @@ void clockEventsBegin(ClockManager& mgr) {
         doc["rings"] = rings;
         serializeJson(doc, buf, sizeof(buf));
         eventsPublish("clock/chimed", buf);
-        eventsPublish("ring/started", "{\"ringing\":true,\"pattern\":\"chime\"}");
+        publishRingStarted("chime");
     });
 }
