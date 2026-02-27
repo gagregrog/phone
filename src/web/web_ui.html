@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phone Controller</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#111827;color:#d1d5db;padding:16px;max-width:860px;margin:0 auto}
+h1{font-size:1.3rem;color:#60a5fa;margin-bottom:14px}
+h2{font-size:.95rem;color:#93c5fd;margin-bottom:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.card{background:#1f2937;border-radius:8px;padding:16px;margin-bottom:12px;border:1px solid #374151}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+label{font-size:.78rem;color:#9ca3af}
+input,select{background:#111827;border:1px solid #374151;color:#d1d5db;border-radius:4px;padding:6px 9px;font-size:.83rem}
+input[type=checkbox]{width:16px;height:16px;margin-top:8px;accent-color:#3b82f6}
+input:focus,select:focus{outline:none;border-color:#3b82f6}
+button{cursor:pointer;border:none;border-radius:4px;padding:7px 12px;font-size:.8rem;color:#fff;transition:filter .15s}
+button:hover{filter:brightness(1.15)}
+.bp{background:#1d4ed8}.bd{background:#991b1b}.bs{background:#166534}.bm{background:#374151}.bw{background:#92400e}
+table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
+th{text-align:left;color:#6b7280;padding:5px 8px;border-bottom:1px solid #374151;font-weight:normal}
+td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
+.badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:.74rem}
+.bon{background:#14532d;color:#86efac}.boff{background:#450a0a;color:#fca5a5}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.don{background:#22c55e}.doff{background:#ef4444}
+.muted{color:#4b5563}
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.pgrid{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+#edit-banner{display:none;font-size:.82rem;color:#fbbf24;margin-bottom:8px;padding:5px 8px;background:#451a03;border-radius:4px}
+#ws-badge{font-size:.72rem;padding:2px 8px;border-radius:10px;background:#14532d;color:#86efac}
+#ws-badge.off{background:#450a0a;color:#fca5a5}
+#log-out{background:#0d1117;border-radius:4px;padding:10px;height:220px;overflow-y:auto;font-family:monospace;font-size:.78rem;line-height:1.6}
+.ll-info{color:#86efac}.ll-warn{color:#fbbf24}.ll-error{color:#f87171}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#1f2937;border-radius:12px;padding:36px 44px;border:1px solid #374151;position:relative;display:flex;flex-direction:column;align-items:center;gap:24px;max-height:90vh;overflow-y:auto}
+.mcls{position:absolute;top:10px;right:14px;background:none;border:none;color:#6b7280;font-size:1.4rem;cursor:pointer;padding:4px 8px;line-height:1}
+.mcls:hover{color:#d1d5db;filter:none}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>Phone Controller</h1>
+  <div style="display:flex;gap:8px;align-items:center">
+    <span id="ws-badge">Live</span>
+    <span id="ws-clients" style="font-size:.72rem;color:#6b7280"></span>
+    <button class="bm" onclick="refreshAll()">Refresh</button>
+  </div>
+</div>
+
+<!-- Ringer -->
+<div class="card">
+  <h2>Ringer</h2>
+  <div id="ring-status" style="margin-bottom:10px"><span class="muted">Loading...</span></div>
+  <div class="pgrid" id="pat-btns"></div>
+  <button class="bd" onclick="stopRing()">Stop Ring</button>
+</div>
+
+<!-- Timers -->
+<div class="card">
+  <h2>Timers</h2>
+  <div class="row">
+    <div class="field"><label>Duration</label><input id="t-dur" placeholder="5m, 1h30m, 90s" style="width:130px"></div>
+    <div class="field"><label>Pattern</label><select id="t-pat"></select></div>
+    <button class="bs" onclick="addTimer()">Add Timer</button>
+    <button class="bd" onclick="cancelAllTimers()">Cancel All</button>
+  </div>
+  <table>
+    <thead><tr><th>ID</th><th>Remaining</th><th>Total</th><th>Pattern</th><th></th></tr></thead>
+    <tbody id="t-body"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<!-- Alarms -->
+<div class="card">
+  <h2>Alarms</h2>
+  <div id="edit-banner">Editing alarm <span id="edit-id"></span> &mdash; fill in fields below and click Update</div>
+  <div class="row">
+    <div class="field"><label>Time</label><input type="time" id="a-time"></div>
+    <div class="field"><label>Pattern</label><select id="a-pat"></select></div>
+    <div class="field"><label>Rings (0=&infin;)</label><input type="number" id="a-rings" value="3" min="0" max="99" style="width:70px"></div>
+    <div class="field"><label>Repeat daily</label><input type="checkbox" id="a-repeat" checked></div>
+    <div class="field"><label>Skip weekends</label><input type="checkbox" id="a-skip"></div>
+    <div class="field"><label>Enabled</label><input type="checkbox" id="a-enabled" checked></div>
+  </div>
+  <div class="row">
+    <button class="bs" id="a-submit" onclick="submitAlarm()">Add Alarm</button>
+    <button class="bm" id="a-cancel" style="display:none" onclick="cancelEdit()">Cancel Edit</button>
+    <button class="bd" onclick="clearAlarms()">Delete All</button>
+  </div>
+  <table>
+    <thead><tr><th>Time</th><th>Pattern</th><th>Rings</th><th>Repeat</th><th>Skip Wknd</th><th>Enabled</th><th></th></tr></thead>
+    <tbody id="a-body"><tr><td colspan="7" class="muted">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<!-- Clock -->
+<div class="card">
+  <h2>Hourly Chime</h2>
+  <div id="clock-status" style="margin-bottom:10px"><span class="muted">Loading...</span></div>
+  <div style="display:flex;gap:8px">
+    <button class="bp" onclick="toggleClock()">Toggle On/Off</button>
+    <button class="bm" onclick="toggleClockMode()">Toggle Mode</button>
+  </div>
+</div>
+
+<!-- Handset -->
+<div class="card">
+  <div class="hdr" style="margin-bottom:12px">
+    <h2 style="margin:0">Handset</h2>
+    <button class="bm" onclick="openHandsetModal()">Expand</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:20px">
+    <svg id="phone-svg" viewBox="0 0 120 125" width="110" height="115" style="flex-shrink:0">
+      <!-- Phone body -->
+      <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Rotary dial face -->
+      <circle id="dial-face" cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+      <!-- Dial center knob -->
+      <circle cx="60" cy="82" r="7" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+      <!-- Finger holes: digit 1 at 12-o-clock, clockwise to 0 at 9-o-clock -->
+      <circle id="dh1" cx="60" cy="61" r="2.5" fill="#374151"/>
+      <circle id="dh2" cx="71" cy="64" r="2.5" fill="#374151"/>
+      <circle id="dh3" cx="78" cy="72" r="2.5" fill="#374151"/>
+      <circle id="dh4" cx="81" cy="82" r="2.5" fill="#374151"/>
+      <circle id="dh5" cx="78" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh6" cx="71" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh7" cx="60" cy="103" r="2.5" fill="#374151"/>
+      <circle id="dh8" cx="49" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh9" cx="42" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh0" cx="39" cy="82" r="2.5" fill="#374151"/>
+      <!-- Stop peg (just clockwise of digit 1) -->
+      <rect x="63" y="58" width="5" height="7" rx="2" fill="#4b5563"/>
+      <!-- Cradle hooks -->
+      <rect x="21" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <rect x="79" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Handset DOWN (resting in cradle) -->
+      <g id="hs-down">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#6b7280" stroke="#9ca3af" stroke-width="1.5"/>
+      </g>
+      <!-- Handset UP (off hook — lifted and tilted) -->
+      <g id="hs-up" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <div>
+      <div id="hs-label" style="font-size:1rem;font-weight:600;color:#d1d5db">—</div>
+      <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Hook switch</div>
+      <div id="dial-label" style="font-size:.78rem;color:#6b7280;margin-top:6px">—</div>
+      <div id="phone-number" style="font-size:1.4rem;font-weight:700;letter-spacing:.12em;color:#60a5fa;margin-top:8px;min-height:1.6rem">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- Logs -->
+<div class="card">
+  <div class="hdr" style="margin-bottom:8px">
+    <h2 style="margin:0">Logs</h2>
+    <button class="bm" onclick="clearLogs()">Clear</button>
+  </div>
+  <div id="log-out"></div>
+</div>
+
+<!-- Handset modal -->
+<div id="hs-modal" class="overlay" onclick="if(event.target===this)closeHandsetModal()">
+  <div class="modal">
+    <button class="mcls" onclick="closeHandsetModal()">&#x2715;</button>
+    <h2 style="margin:0">Handset</h2>
+    <svg viewBox="0 0 120 125" width="300" height="312" style="flex-shrink:0">
+      <!-- Phone body -->
+      <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Rotary dial face -->
+      <circle id="dial-face-m" cx="60" cy="82" r="24" fill="#111827" stroke="#374151" stroke-width="1.5"/>
+      <!-- Dial center knob -->
+      <circle cx="60" cy="82" r="7" fill="#1f2937" stroke="#374151" stroke-width="1"/>
+      <!-- Finger holes -->
+      <circle id="dh1m" cx="60" cy="61" r="2.5" fill="#374151"/>
+      <circle id="dh2m" cx="71" cy="64" r="2.5" fill="#374151"/>
+      <circle id="dh3m" cx="78" cy="72" r="2.5" fill="#374151"/>
+      <circle id="dh4m" cx="81" cy="82" r="2.5" fill="#374151"/>
+      <circle id="dh5m" cx="78" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh6m" cx="71" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh7m" cx="60" cy="103" r="2.5" fill="#374151"/>
+      <circle id="dh8m" cx="49" cy="100" r="2.5" fill="#374151"/>
+      <circle id="dh9m" cx="42" cy="93" r="2.5" fill="#374151"/>
+      <circle id="dh0m" cx="39" cy="82" r="2.5" fill="#374151"/>
+      <!-- Stop peg -->
+      <rect x="63" y="58" width="5" height="7" rx="2" fill="#4b5563"/>
+      <!-- Cradle hooks -->
+      <rect x="21" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <rect x="79" y="39" width="20" height="14" rx="5" fill="#1f2937" stroke="#374151" stroke-width="2"/>
+      <!-- Handset DOWN -->
+      <g id="hs-down-m">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#6b7280" stroke="#9ca3af" stroke-width="1.5"/>
+      </g>
+      <!-- Handset UP -->
+      <g id="hs-up-m" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
+        <rect x="18" y="31" width="84" height="14" rx="7" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
+      </g>
+    </svg>
+    <div style="text-align:center">
+      <div id="hs-label-m" style="font-size:1.6rem;font-weight:600;color:#d1d5db">—</div>
+      <div style="font-size:.85rem;color:#6b7280;margin-top:4px">Hook switch</div>
+      <div id="dial-label-m" style="font-size:.9rem;color:#6b7280;margin-top:12px">—</div>
+      <div id="phone-number-m" style="font-size:2.2rem;font-weight:700;letter-spacing:.14em;color:#60a5fa;margin-top:10px;min-height:2.6rem">—</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let editId = null;
+
+async function req(method, path, body) {
+  try {
+    const o = {method};
+    if (body) { o.body = JSON.stringify(body); o.headers = {'Content-Type':'application/json'}; }
+    const r = await fetch(path, o);
+    return r.ok ? r.json().catch(() => null) : null;
+  } catch(e) { return null; }
+}
+
+const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪'};
+function patLabel(p) { return PAT_FLAGS[p] ? PAT_FLAGS[p] + ' ' + p : p; }
+
+async function loadPatterns() {
+  const data = await req('GET', '/ring/patterns');
+  if (!data) return;
+  const btns = document.getElementById('pat-btns');
+  btns.innerHTML = '';
+  data.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'bp'; b.textContent = patLabel(p);
+    b.onclick = () => startRing(p);
+    btns.appendChild(b);
+  });
+  ['t-pat','a-pat'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = data.map(p => `<option value="${p}">${patLabel(p)}</option>`).join('');
+    if (prev && data.includes(prev)) sel.value = prev;
+  });
+  document.getElementById('t-pat').value = 'chirp';
+  document.getElementById('a-pat').value = 'us';
+}
+
+function updateRinger(d) {
+  const el = document.getElementById('ring-status');
+  const cls = d.ringing ? 'don' : 'doff';
+  el.innerHTML = `<span class="dot ${cls}"></span>${d.ringing ? '<strong>Currently ringing</strong>' : 'Not ringing'}`;
+}
+
+async function loadRinger() {
+  const data = await req('GET', '/ring/status');
+  const el = document.getElementById('ring-status');
+  if (!data) { el.innerHTML = '<span class="muted">Unknown</span>'; return; }
+  updateRinger(data);
+}
+
+async function startRing(p) {
+  await req('POST', '/ring/' + p);
+}
+
+async function stopRing() {
+  await req('POST', '/ring/stop');
+}
+
+function timerRow(t) {
+  return `<tr data-id="${t.id}"><td>${t.id}</td><td>${t.remaining}</td><td>${t.total}</td><td>${t.pattern}</td><td><button class="bd" onclick="cancelTimer(${t.id})">Cancel</button></td></tr>`;
+}
+
+function addTimerRow(t) {
+  const tb = document.getElementById('t-body');
+  if (!tb) return;
+  if (tb.rows.length === 1 && tb.rows[0].cells.length === 1) tb.innerHTML = '';
+  tb.insertAdjacentHTML('beforeend', timerRow(t));
+}
+
+function removeTimerRow(id) {
+  const row = document.querySelector(`#t-body tr[data-id="${id}"]`);
+  if (row) row.remove();
+  const tb = document.getElementById('t-body');
+  if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+}
+
+function clearTimerTable() {
+  const tb = document.getElementById('t-body');
+  if (tb) tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+}
+
+async function loadTimers() {
+  const data = await req('GET', '/timer/status');
+  const tb = document.getElementById('t-body');
+  if (!tb) return;
+  if (!data || !data.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+    return;
+  }
+  tb.innerHTML = data.map(timerRow).join('');
+}
+
+async function addTimer() {
+  const dur = document.getElementById('t-dur').value.trim();
+  const pat = document.getElementById('t-pat').value;
+  if (!dur) return;
+  await req('POST', `/timer/${dur}/${pat}`);
+  document.getElementById('t-dur').value = '';
+}
+
+async function cancelTimer(id) {
+  await req('POST', '/timer/cancel/' + id);
+}
+
+async function cancelAllTimers() {
+  await req('POST', '/timer/cancel');
+}
+
+function alarmRow(a) {
+  const j = JSON.stringify(a).replace(/'/g, "&#39;");
+  return `<tr data-id="${a.id}">
+      <td><strong>${a.time}</strong></td>
+      <td>${a.pattern}</td>
+      <td>${a.rings === 0 ? '&infin;' : a.rings}</td>
+      <td><span class="badge ${a.repeat ? 'bon':'boff'}">${a.repeat?'yes':'no'}</span></td>
+      <td><span class="badge ${a.skipWeekends ? 'bon':'boff'}">${a.skipWeekends?'yes':'no'}</span></td>
+      <td><span class="badge ${a.enabled ? 'bon':'boff'}">${a.enabled?'on':'off'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="bm" onclick='editAlarm(${j})'>Edit</button>
+        <button class="bd" onclick="deleteAlarm(${a.id})">Delete</button>
+      </td>
+    </tr>`;
+}
+
+function addAlarmRow(a) {
+  const tb = document.getElementById('a-body');
+  if (!tb) return;
+  if (tb.rows.length === 1 && tb.rows[0].cells.length === 1) tb.innerHTML = '';
+  tb.insertAdjacentHTML('beforeend', alarmRow(a));
+}
+
+function updateAlarmRow(a) {
+  const row = document.querySelector(`#a-body tr[data-id="${a.id}"]`);
+  if (row) row.outerHTML = alarmRow(a);
+  else addAlarmRow(a);
+}
+
+function removeAlarmRow(id) {
+  const row = document.querySelector(`#a-body tr[data-id="${id}"]`);
+  if (row) row.remove();
+  const tb = document.getElementById('a-body');
+  if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+}
+
+function clearAlarmTable() {
+  const tb = document.getElementById('a-body');
+  if (tb) tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+}
+
+async function loadAlarms() {
+  const data = await req('GET', '/alarm');
+  const tb = document.getElementById('a-body');
+  if (!tb) return;
+  if (!data || !data.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+    return;
+  }
+  tb.innerHTML = data.map(alarmRow).join('');
+}
+
+function editAlarm(a) {
+  editId = a.id;
+  document.getElementById('a-time').value = a.time;
+  document.getElementById('a-pat').value = a.pattern;
+  document.getElementById('a-rings').value = a.rings;
+  document.getElementById('a-repeat').checked = a.repeat;
+  document.getElementById('a-skip').checked = a.skipWeekends;
+  document.getElementById('a-enabled').checked = a.enabled;
+  document.getElementById('edit-banner').style.display = '';
+  document.getElementById('edit-id').textContent = a.id;
+  document.getElementById('a-submit').textContent = 'Update Alarm';
+  document.getElementById('a-cancel').style.display = '';
+  document.getElementById('a-time').focus();
+}
+
+function cancelEdit() {
+  editId = null;
+  document.getElementById('edit-banner').style.display = 'none';
+  document.getElementById('a-submit').textContent = 'Add Alarm';
+  document.getElementById('a-cancel').style.display = 'none';
+  document.getElementById('a-time').value = '';
+}
+
+async function submitAlarm() {
+  const time = document.getElementById('a-time').value;
+  if (!time) return;
+  const [hour, minute] = time.split(':').map(Number);
+  const body = {
+    hour, minute,
+    pattern: document.getElementById('a-pat').value,
+    rings: parseInt(document.getElementById('a-rings').value) || 3,
+    repeat: document.getElementById('a-repeat').checked,
+    skipWeekends: document.getElementById('a-skip').checked,
+    enabled: document.getElementById('a-enabled').checked
+  };
+  if (editId !== null) {
+    await req('PUT', '/alarm/' + editId, body);
+    cancelEdit();
+  } else {
+    await req('POST', '/alarm', body);
+  }
+}
+
+async function deleteAlarm(id) {
+  await req('DELETE', '/alarm/' + id);
+}
+
+async function clearAlarms() {
+  if (!confirm('Delete all alarms?')) return;
+  await req('DELETE', '/alarm');
+}
+
+function updateClock(d) {
+  const el = document.getElementById('clock-status');
+  const cls = d.enabled ? 'don' : 'doff';
+  el.innerHTML = `<span class="dot ${cls}"></span>${d.enabled ? '<strong>Enabled</strong>' : 'Disabled'} &mdash; Mode: <strong>${d.mode}</strong>`;
+}
+
+async function loadClock() {
+  const data = await req('GET', '/clock');
+  const el = document.getElementById('clock-status');
+  if (!data) { el.innerHTML = '<span class="muted">Unknown</span>'; return; }
+  updateClock(data);
+}
+
+async function toggleClock() {
+  await req('POST', '/clock/toggle');
+}
+
+async function toggleClockMode() {
+  await req('POST', '/clock/mode/toggle');
+}
+
+function updateHandset(d) {
+  document.getElementById('hs-down').style.display  = d.offHook ? 'none' : '';
+  document.getElementById('hs-up').style.display    = d.offHook ? '' : 'none';
+  document.getElementById('hs-label').textContent   = d.offHook ? 'Off hook' : 'On hook';
+  document.getElementById('hs-down-m').style.display = d.offHook ? 'none' : '';
+  document.getElementById('hs-up-m').style.display   = d.offHook ? '' : 'none';
+  document.getElementById('hs-label-m').textContent  = d.offHook ? 'Off hook' : 'On hook';
+}
+
+async function loadHandset() {
+  const data = await req('GET', '/handset/status');
+  const label = document.getElementById('hs-label');
+  if (!data) { if (label) label.textContent = 'Unknown'; return; }
+  updateHandset(data);
+}
+
+function openHandsetModal() {
+  document.getElementById('hs-modal').classList.add('open');
+}
+
+function closeHandsetModal() {
+  document.getElementById('hs-modal').classList.remove('open');
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHandsetModal(); });
+
+function formatPhoneNumber(digits) {
+  const n = digits.length;
+  if (n === 0) return '\u2014';
+  if (n <= 3) return digits;
+  if (n <= 7) return digits.slice(0,3) + '-' + digits.slice(3);
+  if (n <= 10) return '(' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6);
+  if (n === 11 && digits[0] === '1') return '+1 (' + digits.slice(1,4) + ') ' + digits.slice(4,7) + '-' + digits.slice(7);
+  return digits.match(/.{1,4}/g).join(' ');
+}
+
+let _dialResetTimer = null;
+const DIAL_HOLE_IDLE = '#374151';
+const DIAL_HOLE_LIT  = '#60a5fa';
+const DIAL_FACE_IDLE_STROKE = '#374151';
+const DIAL_FACE_ACTIVE_STROKE = '#3b82f6';
+
+function _setDialFace(active) {
+  ['dial-face', 'dial-face-m'].forEach(id => {
+    const face = document.getElementById(id);
+    if (face) {
+      face.setAttribute('stroke', active ? DIAL_FACE_ACTIVE_STROKE : DIAL_FACE_IDLE_STROKE);
+      face.setAttribute('stroke-width', active ? '2.5' : '1.5');
+    }
+  });
+}
+
+function _clearDialHoles() {
+  for (let d = 0; d <= 9; d++) {
+    [document.getElementById('dh'+d), document.getElementById('dh'+d+'m')].forEach(h => {
+      if (h) h.setAttribute('fill', DIAL_HOLE_IDLE);
+    });
+  }
+}
+
+function updateDialDialing() {
+  _setDialFace(true);
+  document.getElementById('dial-label').textContent = 'Dialing\u2026';
+  document.getElementById('dial-label-m').textContent = 'Dialing\u2026';
+}
+
+function updateDialDigit(d) {
+  _setDialFace(false);
+  _clearDialHoles();
+  const hole = document.getElementById('dh' + d.digit);
+  if (hole) hole.setAttribute('fill', DIAL_HOLE_LIT);
+  const holem = document.getElementById('dh' + d.digit + 'm');
+  if (holem) holem.setAttribute('fill', DIAL_HOLE_LIT);
+  const formatted = formatPhoneNumber(d.number);
+  document.getElementById('dial-label').textContent = 'Dialed: ' + d.digit;
+  document.getElementById('phone-number').textContent = formatted;
+  document.getElementById('dial-label-m').textContent = 'Dialed: ' + d.digit;
+  document.getElementById('phone-number-m').textContent = formatted;
+  if (_dialResetTimer) clearTimeout(_dialResetTimer);
+  _dialResetTimer = setTimeout(() => {
+    _clearDialHoles();
+    document.getElementById('dial-label').textContent = '\u2014';
+    document.getElementById('dial-label-m').textContent = '\u2014';
+    _dialResetTimer = null;
+  }, 2000);
+}
+
+function updatePhoneClear() {
+  if (_dialResetTimer) { clearTimeout(_dialResetTimer); _dialResetTimer = null; }
+  _clearDialHoles();
+  _setDialFace(false);
+  document.getElementById('dial-label').textContent = '\u2014';
+  document.getElementById('phone-number').textContent = '\u2014';
+  document.getElementById('dial-label-m').textContent = '\u2014';
+  document.getElementById('phone-number-m').textContent = '\u2014';
+}
+
+async function loadPhone() {
+  const data = await req('GET', '/phone/status');
+  if (!data) return;
+  if (data.number) {
+    const formatted = formatPhoneNumber(data.number);
+    document.getElementById('phone-number').textContent = formatted;
+    document.getElementById('phone-number-m').textContent = formatted;
+  }
+}
+
+async function refreshAll() {
+  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone()]);
+}
+
+function appendLog(level, msg, time) {
+  const el = document.getElementById('log-out');
+  const line = document.createElement('div');
+  line.className = 'll-' + level;
+  const prefix = level === 'error' ? '[ERROR]' : level === 'warn' ? '[WARN] ' : '[INFO] ';
+  const ts = time ? `[${time}] ` : '';
+  line.textContent = ts + prefix + ' ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  while (el.children.length > 200) el.removeChild(el.firstChild);
+}
+
+function clearLogs() {
+  document.getElementById('log-out').innerHTML = '';
+}
+
+// WebSocket — drives all live updates
+let ws = null;
+let lastMsgTime = Date.now();
+let wsWasOffline = false;
+
+function connectWS() {
+  // Ghost connection: OPEN but no message for 15s — force close so badge goes Offline
+  if (ws && ws.readyState === WebSocket.OPEN && Date.now() - lastMsgTime > 15000) {
+    ws.close();
+    return;
+  }
+  if (ws && ws.readyState !== WebSocket.CLOSED) return;
+  ws = new WebSocket(`ws://${location.host}/ws`);
+  const badge = document.getElementById('ws-badge');
+
+  ws.onopen = () => {
+    badge.textContent = 'Live';
+    badge.className = '';
+    lastMsgTime = Date.now();
+    // Only refresh on reconnect after being offline; initial load is handled by loadPatterns().then(refreshAll)
+    if (wsWasOffline) {
+      wsWasOffline = false;
+      refreshAll();
+    }
+  };
+
+  ws.onclose = () => {
+    wsWasOffline = true;
+    badge.textContent = 'Offline';
+    badge.className = 'off';
+  };
+
+  ws.onmessage = (evt) => {
+    lastMsgTime = Date.now();
+    try {
+      const msg = JSON.parse(evt.data);
+      if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time);
+      else if (msg.topic === 'ws/clients') { const n = msg.data.count; document.getElementById('ws-clients').textContent = n + (n === 1 ? ' client' : ' clients'); }
+      else if (msg.topic === 'ring/started' || msg.topic === 'ring/stopped') updateRinger(msg.data);
+      else if (msg.topic === 'timer/started') addTimerRow(msg.data);
+      else if (msg.topic === 'timer/cancelled' || msg.topic === 'timer/expired') removeTimerRow(msg.data.id);
+      else if (msg.topic === 'timer/cleared') clearTimerTable();
+      else if (msg.topic === 'alarm/created') addAlarmRow(msg.data);
+      else if (msg.topic === 'alarm/updated' || msg.topic === 'alarm/fired') updateAlarmRow(msg.data);
+      else if (msg.topic === 'alarm/deleted') removeAlarmRow(msg.data.id);
+      else if (msg.topic === 'alarm/cleared') clearAlarmTable();
+      else if (msg.topic === 'clock/updated') updateClock(msg.data);
+      else if (msg.topic === 'handset/up' || msg.topic === 'handset/down') updateHandset(msg.data);
+      else if (msg.topic === 'phone/dialing') updateDialDialing();
+      else if (msg.topic === 'phone/digit') updateDialDigit(msg.data);
+      else if (msg.topic === 'phone/clear') updatePhoneClear();
+    } catch(e) {}
+  };
+}
+
+// Watchdog: retry every 3s regardless of whether onclose fired
+setInterval(connectWS, 3000);
+loadPatterns().then(refreshAll);
+connectWS();
+</script>
+</body>
+</html>

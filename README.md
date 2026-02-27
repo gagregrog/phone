@@ -149,6 +149,18 @@ The project uses a custom partition table (`partitions.csv`) that removes the un
 | app0      | `0x010000` | 1.875 MB   | OTA slot 0                     |
 | app1      | `0x200000` | 1.875 MB   | OTA slot 1                     |
 
+### Web UI build step
+
+The web UI source lives in `src/web/web_ui.html`. Each device build automatically gzip-compresses it and writes `src/web/web_ui_html.h` (a byte array included by `WebUI.cpp`). The generated header is gitignored — edit `web_ui.html` directly, never the header.
+
+The build will print the compression result, e.g.:
+
+```
+compress_html: 27134 -> 7823 bytes (71% reduction)
+```
+
+This step does not run for the `native` test environment.
+
 ### Applying the partition table
 
 The partition table lives outside the app partitions and **cannot be updated over OTA** — it requires a one-time serial flash. After that, OTA works normally.
@@ -234,7 +246,7 @@ Multiple country-specific ringing cadences are available:
 
 ## Web UI
 
-A browser-based dashboard is served at `http://phone.local/` (port 80). It provides a live view of all device state and controls for every feature:
+A browser-based dashboard is served at `http://phone.local/` (port 80). The source lives in `src/web/web_ui.html` and is gzip-compressed automatically at build time. It provides a live view of all device state and controls for every feature:
 
 - **Ringer** — see ring status, trigger any pattern with one click, stop ringing
 - **Timers** — view active timers with countdowns, add new timers, cancel individually or all at once
