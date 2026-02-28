@@ -39,6 +39,12 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 .modal{background:#1f2937;border-radius:12px;padding:36px 44px;border:1px solid #374151;position:relative;display:flex;flex-direction:column;align-items:center;gap:24px;max-height:90vh;overflow-y:auto}
 .mcls{position:absolute;top:10px;right:14px;background:none;border:none;color:#6b7280;font-size:1.4rem;cursor:pointer;padding:4px 8px;line-height:1}
 .mcls:hover{color:#d1d5db;filter:none}
+@keyframes ring-shake{0%,100%{transform:translateX(0) rotate(0deg)}20%{transform:translateX(-4px) rotate(-1.5deg)}40%{transform:translateX(4px) rotate(1.5deg)}60%{transform:translateX(-3px) rotate(-1deg)}80%{transform:translateX(3px) rotate(1deg)}}
+@keyframes ring-pulse{0%,100%{opacity:0}50%{opacity:1}}
+.ringing{animation:ring-shake .45s ease-in-out infinite}
+.ring-wave{opacity:0}
+.ringing .ring-wave{animation:ring-pulse .9s ease-in-out infinite}
+.ringing .rw2{animation-delay:.3s}.ringing .rw3{animation-delay:.15s}.ringing .rw4{animation-delay:.45s}
 </style>
 </head>
 <body>
@@ -147,6 +153,11 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <g id="hs-up" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
         <path d="M 22 32 C 40 32 78 28 98 32 C 112 34 116 54 98 54 C 90 54 88 46 82 44 C 76 42 44 42 38 44 C 32 46 30 54 22 54 C 4 54 8 34 22 32 Z" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
       </g>
+      <!-- Ringing sound-wave arcs (animated via .ringing class on SVG) -->
+      <path class="ring-wave rw1" d="M 17 43 Q 11 31 17 19" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+      <path class="ring-wave rw2" d="M 12 45 Q 4 29 12 13" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
+      <path class="ring-wave rw3" d="M 103 43 Q 109 31 103 19" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+      <path class="ring-wave rw4" d="M 108 45 Q 116 29 108 13" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
     <div>
       <div id="hs-label" style="font-size:1rem;font-weight:600;color:#d1d5db">—</div>
@@ -171,7 +182,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   <div class="modal">
     <button class="mcls" onclick="closeHandsetModal()">&#x2715;</button>
     <h2 style="margin:0">Handset</h2>
-    <svg viewBox="0 0 120 125" width="300" height="312" style="flex-shrink:0">
+    <svg id="phone-svg-m" viewBox="0 0 120 125" width="300" height="312" style="flex-shrink:0">
       <!-- Phone body -->
       <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <!-- Rotary dial face -->
@@ -203,6 +214,11 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <g id="hs-up-m" style="display:none" transform="translate(5,-18) rotate(-14 60 38)">
         <path d="M 22 32 C 40 32 78 28 98 32 C 112 34 116 54 98 54 C 90 54 88 46 82 44 C 76 42 44 42 38 44 C 32 46 30 54 22 54 C 4 54 8 34 22 32 Z" fill="#60a5fa" stroke="#93c5fd" stroke-width="1.5"/>
       </g>
+      <!-- Ringing sound-wave arcs -->
+      <path class="ring-wave rw1" d="M 17 43 Q 11 31 17 19" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+      <path class="ring-wave rw2" d="M 12 45 Q 4 29 12 13" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
+      <path class="ring-wave rw3" d="M 103 43 Q 109 31 103 19" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
+      <path class="ring-wave rw4" d="M 108 45 Q 116 29 108 13" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
     <div style="text-align:center">
       <div id="hs-label-m" style="font-size:1.6rem;font-weight:600;color:#d1d5db">—</div>
@@ -253,6 +269,10 @@ function updateRinger(d) {
   const el = document.getElementById('ring-status');
   const cls = d.ringing ? 'don' : 'doff';
   el.innerHTML = `<span class="dot ${cls}"></span>${d.ringing ? '<strong>Currently ringing</strong>' : 'Not ringing'}`;
+  ['phone-svg','phone-svg-m'].forEach(id => {
+    const svg = document.getElementById(id);
+    if (svg) svg.classList.toggle('ringing', !!d.ringing);
+  });
 }
 
 async function loadRinger() {
