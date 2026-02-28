@@ -157,6 +157,48 @@ void test_uk_double_ring_cycle(void) {
   TEST_ASSERT_FALSE(ringer->isRinging());
 }
 
+// --- onStop callback ---
+
+void test_on_stop_fires_when_cycles_complete(void) {
+  int callCount = 0;
+  ringer->setOnStop([&callCount]{ callCount++; });
+  ringer->ring(PATTERN_US, 1);
+
+  _mock_millis = 2000;
+  ringer->update();  // ON -> OFF
+  _mock_millis = 6000;
+  ringer->update();  // cycle completes -> stop
+
+  TEST_ASSERT_EQUAL(1, callCount);
+}
+
+void test_on_stop_not_fired_by_external_ring_stop(void) {
+  int callCount = 0;
+  ringer->setOnStop([&callCount]{ callCount++; });
+  ringer->ring(PATTERN_US, 1);
+  ringer->ringStop();
+
+  TEST_ASSERT_EQUAL(0, callCount);
+}
+
+void test_on_stop_fires_once_for_three_cycles(void) {
+  int callCount = 0;
+  ringer->setOnStop([&callCount]{ callCount++; });
+  ringer->ring(PATTERN_US, 3);
+  unsigned long t = 0;
+
+  for (int cycle = 0; cycle < 3; cycle++) {
+    t += 2000;
+    _mock_millis = t;
+    ringer->update();
+    t += 4000;
+    _mock_millis = t;
+    ringer->update();
+  }
+
+  TEST_ASSERT_EQUAL(1, callCount);
+}
+
 // --- Ring can be restarted ---
 
 void test_ring_restart_resets_state(void) {
@@ -194,6 +236,10 @@ int main(int argc, char** argv) {
   RUN_TEST(test_three_cycles);
 
   RUN_TEST(test_uk_double_ring_cycle);
+
+  RUN_TEST(test_on_stop_fires_when_cycles_complete);
+  RUN_TEST(test_on_stop_not_fired_by_external_ring_stop);
+  RUN_TEST(test_on_stop_fires_once_for_three_cycles);
 
   RUN_TEST(test_ring_restart_resets_state);
   RUN_TEST(test_update_when_idle);
