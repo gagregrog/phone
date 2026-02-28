@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include <functional>
 #include "hardware/MotorDriver.h"
 #include "ringer/RingPattern.h"
 
@@ -11,6 +12,7 @@ public:
   void ringStop();                        // Stop all ringing immediately
   void update();                          // Call every loop iteration
   bool isRinging() const;
+  void setOnStop(std::function<void()> cb);  // Called when fixed-cycle ring completes naturally
 
 private:
   MotorDriver& _motor;
@@ -22,4 +24,5 @@ private:
   const RingPattern* _pattern;
   uint8_t _phaseIndex;
   uint16_t _cyclesRemaining;  // 0 = infinite
+  std::function<void()> _onStop;
 };

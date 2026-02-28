@@ -3,6 +3,10 @@
 #include "web/Events.h"
 #include <ArduinoJson.h>
 
+void ringerEventsBegin(Ringer& ringer) {
+    ringer.setOnStop([]{ publishRingStopped(); });
+}
+
 void publishRingStarted(const char* pattern) {
     JsonDocument doc;
     ringStartedFillJson(doc.to<JsonObject>(), pattern);

@@ -62,6 +62,7 @@ void setup() {
 
     clockBegin(TZ_STRING);
     alarmMgr.init();
+    ringerEventsBegin(ringer);
     handsetEventsBegin(handset);
     dialManagerEventsBegin(dialMgr);
     timerEventsBegin(timer);
