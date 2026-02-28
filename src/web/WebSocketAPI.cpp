@@ -4,11 +4,13 @@
 #include "system/Logger.h"
 #include <ESPAsyncWebServer.h>
 #include <deque>
+#include <map>
 #include <string.h>
 
 static AsyncWebSocket _ws("/ws");
 static std::deque<String> _logBuffer;
 static const size_t LOG_BUFFER_SIZE = 100;
+static std::map<uint32_t, String> _clientIPs;
 
 static void publishClientCount() {
     String payload = "{\"count\":";
@@ -21,13 +23,16 @@ void webSocketAPIBegin() {
     _ws.onEvent([](AsyncWebSocket*, AsyncWebSocketClient* client,
                    AwsEventType type, void*, uint8_t*, size_t) {
         if (type == WS_EVT_CONNECT) {
+            _clientIPs[client->id()] = client->remoteIP().toString();
             for (const auto& entry : _logBuffer) {
                 client->text(entry);
             }
-            logger.infof("WS client %u connected", client->id());
+            logger.infof("[%s] WS client %u connected", _clientIPs[client->id()].c_str(), client->id());
             publishClientCount();
         } else if (type == WS_EVT_DISCONNECT) {
-            logger.infof("WS client %u disconnected", client->id());
+            String ip = _clientIPs.count(client->id()) ? _clientIPs[client->id()] : "unknown";
+            _clientIPs.erase(client->id());
+            logger.infof("[%s] WS client %u disconnected", ip.c_str(), client->id());
             publishClientCount();
         }
     });

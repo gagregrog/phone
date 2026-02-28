@@ -13,7 +13,8 @@ h2{font-size:.95rem;color:#93c5fd;margin-bottom:10px;font-weight:600;text-transf
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-bottom:10px}
 .field{display:flex;flex-direction:column;gap:4px}
 label{font-size:.78rem;color:#9ca3af}
-input,select{background:#111827;border:1px solid #374151;color:#d1d5db;border-radius:4px;padding:6px 9px;font-size:.83rem}
+input,select{background:#111827;border:1px solid #374151;color:#d1d5db;border-radius:4px;padding:6px 9px;font-size:.83rem;color-scheme:dark}
+select{padding-right:24px}
 input[type=checkbox]{width:16px;height:16px;margin-top:8px;accent-color:#3b82f6}
 input:focus,select:focus{outline:none;border-color:#3b82f6}
 button{cursor:pointer;border:none;border-radius:4px;padding:7px 12px;font-size:.8rem;color:#fff;transition:filter .15s}
@@ -49,67 +50,14 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 </head>
 <body>
 <div class="hdr">
-  <h1>Phone Controller</h1>
+  <div>
+    <h1>Phone Controller</h1>
+    <div id="device-ip" style="font-size:.75rem;color:#6b7280;margin-top:-10px"></div>
+  </div>
   <div style="display:flex;gap:8px;align-items:center">
     <span id="ws-badge">Live</span>
     <span id="ws-clients" style="font-size:.72rem;color:#6b7280"></span>
     <button class="bm" onclick="refreshAll()">Refresh</button>
-  </div>
-</div>
-
-<!-- Ringer -->
-<div class="card">
-  <h2>Ringer</h2>
-  <div id="ring-status" style="margin-bottom:10px"><span class="muted">Loading...</span></div>
-  <div class="pgrid" id="pat-btns"></div>
-  <button class="bd" onclick="stopRing()">Stop Ring</button>
-</div>
-
-<!-- Timers -->
-<div class="card">
-  <h2>Timers</h2>
-  <div class="row">
-    <div class="field"><label>Duration</label><input id="t-dur" placeholder="5m, 1h30m, 90s" style="width:130px"></div>
-    <div class="field"><label>Pattern</label><select id="t-pat"></select></div>
-    <button class="bs" onclick="addTimer()">Add Timer</button>
-    <button class="bd" onclick="cancelAllTimers()">Cancel All</button>
-  </div>
-  <table>
-    <thead><tr><th>ID</th><th>Remaining</th><th>Total</th><th>Pattern</th><th></th></tr></thead>
-    <tbody id="t-body"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
-  </table>
-</div>
-
-<!-- Alarms -->
-<div class="card">
-  <h2>Alarms</h2>
-  <div id="edit-banner">Editing alarm <span id="edit-id"></span> &mdash; fill in fields below and click Update</div>
-  <div class="row">
-    <div class="field"><label>Time</label><input type="time" id="a-time"></div>
-    <div class="field"><label>Pattern</label><select id="a-pat"></select></div>
-    <div class="field"><label>Rings (0=&infin;)</label><input type="number" id="a-rings" value="3" min="0" max="99" style="width:70px"></div>
-    <div class="field"><label>Repeat daily</label><input type="checkbox" id="a-repeat" checked></div>
-    <div class="field"><label>Skip weekends</label><input type="checkbox" id="a-skip"></div>
-    <div class="field"><label>Enabled</label><input type="checkbox" id="a-enabled" checked></div>
-  </div>
-  <div class="row">
-    <button class="bs" id="a-submit" onclick="submitAlarm()">Add Alarm</button>
-    <button class="bm" id="a-cancel" style="display:none" onclick="cancelEdit()">Cancel Edit</button>
-    <button class="bd" onclick="clearAlarms()">Delete All</button>
-  </div>
-  <table>
-    <thead><tr><th>Time</th><th>Pattern</th><th>Rings</th><th>Repeat</th><th>Skip Wknd</th><th>Enabled</th><th></th></tr></thead>
-    <tbody id="a-body"><tr><td colspan="7" class="muted">Loading...</td></tr></tbody>
-  </table>
-</div>
-
-<!-- Clock -->
-<div class="card">
-  <h2>Hourly Chime</h2>
-  <div id="clock-status" style="margin-bottom:10px"><span class="muted">Loading...</span></div>
-  <div style="display:flex;gap:8px">
-    <button class="bp" onclick="toggleClock()">Toggle On/Off</button>
-    <button class="bm" onclick="toggleClockMode()">Toggle Mode</button>
   </div>
 </div>
 
@@ -168,11 +116,82 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   </div>
 </div>
 
+<!-- Ringer -->
+<div class="card">
+  <h2>Ringer</h2>
+  <div id="ring-status" style="margin-bottom:10px"><span class="muted">Loading...</span></div>
+  <div style="display:flex;align-items:flex-start;gap:8px">
+    <div class="pgrid" id="pat-btns" style="flex:1;margin-bottom:0"></div>
+    <button id="stop-ring-btn" class="bd" style="visibility:hidden;flex-shrink:0" onclick="stopRing()">Stop Ring</button>
+  </div>
+</div>
+
+<!-- Timers -->
+<div class="card">
+  <h2>Timers</h2>
+  <div class="row">
+    <div class="field"><label>Duration</label><input id="t-dur" placeholder="5m, 1h30m, 90s" style="width:130px"></div>
+    <div class="field"><label>Pattern</label><select id="t-pat"></select></div>
+    <button class="bs" onclick="addTimer()">Add Timer</button>
+    <button id="t-cancel-all" class="bd" style="display:none" onclick="cancelAllTimers()">Cancel All</button>
+  </div>
+  <div class="row" style="margin-bottom:0">
+    <span style="font-size:.78rem;color:#6b7280;align-self:center">Quick:</span>
+    <button class="bm" onclick="quickTimer('5m')">5m</button>
+    <button class="bm" onclick="quickTimer('10m')">10m</button>
+    <button class="bm" onclick="quickTimer('15m')">15m</button>
+    <button class="bm" onclick="quickTimer('30m')">30m</button>
+    <button class="bm" onclick="quickTimer('1h')">1h</button>
+  </div>
+  <table>
+    <thead><tr><th>ID</th><th>Remaining</th><th>Total</th><th>Pattern</th><th></th></tr></thead>
+    <tbody id="t-body"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<!-- Alarms -->
+<div class="card">
+  <h2>Alarms</h2>
+  <div id="edit-banner">Editing alarm <span id="edit-id"></span> &mdash; fill in fields below and click Update</div>
+  <div class="row">
+    <div class="field"><label>Time</label><input type="time" id="a-time"></div>
+    <div class="field"><label>Pattern</label><select id="a-pat"></select></div>
+    <div class="field"><label>Rings (0=&infin;)</label><input type="number" id="a-rings" value="3" min="0" max="99" style="width:70px"></div>
+    <div class="field"><label>Repeat daily</label><input type="checkbox" id="a-repeat" checked></div>
+    <div class="field"><label>Skip weekends</label><input type="checkbox" id="a-skip"></div>
+    <div class="field"><label>Enabled</label><input type="checkbox" id="a-enabled" checked></div>
+  </div>
+  <div class="row">
+    <button class="bs" id="a-submit" onclick="submitAlarm()">Add Alarm</button>
+    <button class="bm" id="a-cancel" style="display:none" onclick="cancelEdit()">Cancel Edit</button>
+    <button id="a-delete-all" class="bd" style="display:none" onclick="clearAlarms()">Delete All</button>
+  </div>
+  <table>
+    <thead><tr><th>Time</th><th>Pattern</th><th>Rings</th><th>Repeat</th><th>Skip Wknd</th><th>Enabled</th><th></th></tr></thead>
+    <tbody id="a-body"><tr><td colspan="7" class="muted">Loading...</td></tr></tbody>
+  </table>
+</div>
+
+<!-- Clock -->
+<div class="card">
+  <h2>Hourly Chime</h2>
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div id="clock-status"><span class="muted">Loading...</span></div>
+    <div style="display:flex;gap:8px">
+      <button id="clock-mode-btn" class="bm" style="display:none" onclick="toggleClockMode()">Toggle Mode</button>
+      <button id="clock-toggle-btn" class="bs" onclick="toggleClock()">Enable</button>
+    </div>
+  </div>
+</div>
+
 <!-- Logs -->
 <div class="card">
   <div class="hdr" style="margin-bottom:8px">
     <h2 style="margin:0">Logs</h2>
-    <button class="bm" onclick="clearLogs()">Clear</button>
+    <div style="display:flex;gap:8px">
+      <button class="bm" onclick="clearLogs()">Clear</button>
+      <button class="bm" onclick="openLogsModal()">Expand</button>
+    </div>
   </div>
   <div id="log-out"></div>
 </div>
@@ -182,7 +201,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   <div class="modal">
     <button class="mcls" onclick="closeHandsetModal()">&#x2715;</button>
     <h2 style="margin:0">Handset</h2>
-    <svg id="phone-svg-m" viewBox="0 0 120 125" width="300" height="312" style="flex-shrink:0">
+    <svg id="phone-svg-m" viewBox="0 0 120 125" width="420" height="438" style="flex-shrink:0">
       <!-- Phone body -->
       <rect x="20" y="47" width="80" height="72" rx="8" fill="#1f2937" stroke="#374151" stroke-width="2"/>
       <!-- Rotary dial face -->
@@ -221,11 +240,20 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <path class="ring-wave rw4" d="M 108 45 Q 116 29 108 13" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
     <div style="text-align:center">
-      <div id="hs-label-m" style="font-size:1.6rem;font-weight:600;color:#d1d5db">—</div>
-      <div style="font-size:.85rem;color:#6b7280;margin-top:4px">Hook switch</div>
-      <div id="dial-label-m" style="font-size:.9rem;color:#6b7280;margin-top:12px">—</div>
-      <div id="phone-number-m" style="font-size:2.2rem;font-weight:700;letter-spacing:.14em;color:#60a5fa;margin-top:10px;min-height:2.6rem">—</div>
+      <div id="hs-label-m" style="font-size:2rem;font-weight:600;color:#d1d5db">—</div>
+      <div style="font-size:1rem;color:#6b7280;margin-top:4px">Hook switch</div>
+      <div id="dial-label-m" style="font-size:1rem;color:#6b7280;margin-top:14px">—</div>
+      <div id="phone-number-m" style="font-size:2.8rem;font-weight:700;letter-spacing:.14em;color:#60a5fa;margin-top:10px;min-height:3.2rem">—</div>
     </div>
+  </div>
+</div>
+
+<!-- Logs modal -->
+<div id="log-modal" class="overlay" onclick="if(event.target===this)closeLogsModal()">
+  <div class="modal" style="width:90vw;max-width:1000px;align-items:stretch">
+    <button class="mcls" onclick="closeLogsModal()">&#x2715;</button>
+    <h2 style="margin:0">Logs</h2>
+    <div id="log-out-m" style="background:#0d1117;border-radius:4px;padding:10px;height:65vh;overflow-y:auto;font-family:monospace;font-size:.78rem;line-height:1.6;width:100%"></div>
   </div>
 </div>
 
@@ -241,8 +269,8 @@ async function req(method, path, body) {
   } catch(e) { return null; }
 }
 
-const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪'};
-function patLabel(p) { return PAT_FLAGS[p] ? PAT_FLAGS[p] + ' ' + p : p; }
+const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪',chirp:'🔔🔔',chime:'🔔'};
+function patLabel(p) { return PAT_FLAGS[p] || p; }
 
 async function loadPatterns() {
   const data = await req('GET', '/ring/patterns');
@@ -251,7 +279,7 @@ async function loadPatterns() {
   btns.innerHTML = '';
   data.forEach(p => {
     const b = document.createElement('button');
-    b.className = 'bp'; b.textContent = patLabel(p);
+    b.className = 'bp'; b.textContent = patLabel(p); b.title = p;
     b.onclick = () => startRing(p);
     btns.appendChild(b);
   });
@@ -269,6 +297,7 @@ function updateRinger(d) {
   const el = document.getElementById('ring-status');
   const cls = d.ringing ? 'don' : 'doff';
   el.innerHTML = `<span class="dot ${cls}"></span>${d.ringing ? '<strong>Currently ringing</strong>' : 'Not ringing'}`;
+  document.getElementById('stop-ring-btn').style.visibility = d.ringing ? '' : 'hidden';
   ['phone-svg','phone-svg-m'].forEach(id => {
     const svg = document.getElementById(id);
     if (svg) svg.classList.toggle('ringing', !!d.ringing);
@@ -290,8 +319,51 @@ async function stopRing() {
   await req('POST', '/ring/stop');
 }
 
+const _timerEnds = {};
+let _timerTickId = null;
+
+function fmtMs(ms) {
+  let s = Math.max(0, Math.round(ms / 1000));
+  const h = Math.floor(s / 3600); s %= 3600;
+  const m = Math.floor(s / 60); s %= 60;
+  let r = '';
+  if (h) r += h + 'h';
+  if (m) r += m + 'm';
+  if (s || !r) r += s + 's';
+  return r;
+}
+
+function _timerTickStart() {
+  if (_timerTickId !== null) return;
+  _timerTickId = setInterval(() => {
+    const now = Date.now();
+    for (const id in _timerEnds) {
+      const cell = document.getElementById('tr-rem-' + id);
+      if (cell) cell.textContent = fmtMs(_timerEnds[id] - now);
+    }
+  }, 500);
+}
+
+function _timerTickStop() {
+  if (_timerTickId === null) return;
+  clearInterval(_timerTickId);
+  _timerTickId = null;
+}
+
 function timerRow(t) {
-  return `<tr data-id="${t.id}"><td>${t.id}</td><td>${t.remaining}</td><td>${t.total}</td><td>${t.pattern}</td><td><button class="bd" onclick="cancelTimer(${t.id})">Cancel</button></td></tr>`;
+  return `<tr data-id="${t.id}"><td>${t.id}</td><td id="tr-rem-${t.id}">${t.remaining}</td><td>${t.total}</td><td>${t.pattern}</td><td><button class="bd" onclick="cancelTimer(${t.id})">Cancel</button></td></tr>`;
+}
+
+function _registerTimer(t) {
+  if (t.remainingMs != null) {
+    _timerEnds[t.id] = Date.now() + t.remainingMs;
+    _timerTickStart();
+  }
+}
+
+function _syncTimerActions() {
+  const hasTimers = !!document.querySelector('#t-body tr[data-id]');
+  document.getElementById('t-cancel-all').style.display = hasTimers ? '' : 'none';
 }
 
 function addTimerRow(t) {
@@ -299,29 +371,42 @@ function addTimerRow(t) {
   if (!tb) return;
   if (tb.rows.length === 1 && tb.rows[0].cells.length === 1) tb.innerHTML = '';
   tb.insertAdjacentHTML('beforeend', timerRow(t));
+  _registerTimer(t);
+  _syncTimerActions();
 }
 
 function removeTimerRow(id) {
   const row = document.querySelector(`#t-body tr[data-id="${id}"]`);
   if (row) row.remove();
+  delete _timerEnds[id];
+  if (Object.keys(_timerEnds).length === 0) _timerTickStop();
   const tb = document.getElementById('t-body');
   if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+  _syncTimerActions();
 }
 
 function clearTimerTable() {
   const tb = document.getElementById('t-body');
   if (tb) tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+  for (const id in _timerEnds) delete _timerEnds[id];
+  _timerTickStop();
+  _syncTimerActions();
 }
 
 async function loadTimers() {
   const data = await req('GET', '/timer/status');
   const tb = document.getElementById('t-body');
   if (!tb) return;
+  for (const id in _timerEnds) delete _timerEnds[id];
+  _timerTickStop();
   if (!data || !data.length) {
     tb.innerHTML = '<tr><td colspan="5" class="muted">No active timers</td></tr>';
+    _syncTimerActions();
     return;
   }
   tb.innerHTML = data.map(timerRow).join('');
+  data.forEach(_registerTimer);
+  _syncTimerActions();
 }
 
 async function addTimer() {
@@ -330,6 +415,11 @@ async function addTimer() {
   if (!dur) return;
   await req('POST', `/timer/${dur}/${pat}`);
   document.getElementById('t-dur').value = '';
+}
+
+async function quickTimer(dur) {
+  const pat = document.getElementById('t-pat').value;
+  await req('POST', `/timer/${dur}/${pat}`);
 }
 
 async function cancelTimer(id) {
@@ -356,11 +446,17 @@ function alarmRow(a) {
     </tr>`;
 }
 
+function _syncAlarmActions() {
+  const hasAlarms = !!document.querySelector('#a-body tr[data-id]');
+  document.getElementById('a-delete-all').style.display = hasAlarms ? '' : 'none';
+}
+
 function addAlarmRow(a) {
   const tb = document.getElementById('a-body');
   if (!tb) return;
   if (tb.rows.length === 1 && tb.rows[0].cells.length === 1) tb.innerHTML = '';
   tb.insertAdjacentHTML('beforeend', alarmRow(a));
+  _syncAlarmActions();
 }
 
 function updateAlarmRow(a) {
@@ -374,11 +470,13 @@ function removeAlarmRow(id) {
   if (row) row.remove();
   const tb = document.getElementById('a-body');
   if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+  _syncAlarmActions();
 }
 
 function clearAlarmTable() {
   const tb = document.getElementById('a-body');
   if (tb) tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+  _syncAlarmActions();
 }
 
 async function loadAlarms() {
@@ -387,9 +485,11 @@ async function loadAlarms() {
   if (!tb) return;
   if (!data || !data.length) {
     tb.innerHTML = '<tr><td colspan="7" class="muted">No alarms scheduled</td></tr>';
+    _syncAlarmActions();
     return;
   }
   tb.innerHTML = data.map(alarmRow).join('');
+  _syncAlarmActions();
 }
 
 function editAlarm(a) {
@@ -447,7 +547,11 @@ async function clearAlarms() {
 function updateClock(d) {
   const el = document.getElementById('clock-status');
   const cls = d.enabled ? 'don' : 'doff';
-  el.innerHTML = `<span class="dot ${cls}"></span>${d.enabled ? '<strong>Enabled</strong>' : 'Disabled'} &mdash; Mode: <strong>${d.mode}</strong>`;
+  el.innerHTML = `<span class="dot ${cls}"></span>${d.enabled ? `<strong>Enabled</strong> &mdash; Mode: <strong>${d.mode}</strong>` : 'Disabled'}`;
+  const btn = document.getElementById('clock-toggle-btn');
+  btn.textContent = d.enabled ? 'Disable' : 'Enable';
+  btn.className = d.enabled ? 'bd' : 'bs';
+  document.getElementById('clock-mode-btn').style.display = d.enabled ? '' : 'none';
 }
 
 async function loadClock() {
@@ -483,13 +587,15 @@ async function loadHandset() {
 
 function openHandsetModal() {
   document.getElementById('hs-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeHandsetModal() {
   document.getElementById('hs-modal').classList.remove('open');
+  if (!document.querySelector('.overlay.open')) document.body.style.overflow = '';
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeHandsetModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeHandsetModal(); closeLogsModal(); } });
 
 function formatPhoneNumber(digits) {
   const n = digits.length;
@@ -572,24 +678,51 @@ async function loadPhone() {
   }
 }
 
+async function loadDeviceIP() {
+  try {
+    const r = await fetch('/ip');
+    if (r.ok) document.getElementById('device-ip').textContent = await r.text();
+  } catch(e) {}
+}
+
 async function refreshAll() {
   await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone()]);
 }
 
 function appendLog(level, msg, time) {
-  const el = document.getElementById('log-out');
-  const line = document.createElement('div');
-  line.className = 'll-' + level;
   const prefix = level === 'error' ? '[ERROR]' : level === 'warn' ? '[WARN] ' : '[INFO] ';
   const ts = time ? `[${time}] ` : '';
-  line.textContent = ts + prefix + ' ' + msg;
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
-  while (el.children.length > 200) el.removeChild(el.firstChild);
+  function addLine(el) {
+    if (!el) return;
+    const line = document.createElement('div');
+    line.className = 'll-' + level;
+    line.textContent = ts + prefix + ' ' + msg;
+    el.appendChild(line);
+    el.scrollTop = el.scrollHeight;
+    while (el.children.length > 200) el.removeChild(el.firstChild);
+  }
+  addLine(document.getElementById('log-out'));
+  addLine(document.getElementById('log-out-m'));
 }
 
 function clearLogs() {
   document.getElementById('log-out').innerHTML = '';
+  const m = document.getElementById('log-out-m');
+  if (m) m.innerHTML = '';
+}
+
+function openLogsModal() {
+  const src = document.getElementById('log-out');
+  const dst = document.getElementById('log-out-m');
+  dst.innerHTML = src.innerHTML;
+  dst.scrollTop = dst.scrollHeight;
+  document.getElementById('log-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLogsModal() {
+  document.getElementById('log-modal').classList.remove('open');
+  if (!document.querySelector('.overlay.open')) document.body.style.overflow = '';
 }
 
 // WebSocket — drives all live updates
@@ -649,6 +782,7 @@ function connectWS() {
 
 // Watchdog: retry every 3s regardless of whether onclose fired
 setInterval(connectWS, 3000);
+loadDeviceIP();
 loadPatterns().then(refreshAll);
 connectWS();
 </script>

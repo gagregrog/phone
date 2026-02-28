@@ -4,6 +4,8 @@
 void timerInfoFillJson(JsonObject obj, const TimerInfo& info) {
     char buf[10];
     obj["id"] = info.id;
+    obj["remainingMs"] = info.remainingMs;
+    obj["totalMs"] = info.totalMs;
     formatDuration((info.remainingMs + 500) / 1000, buf, sizeof(buf));
     obj["remaining"] = buf;
     formatDuration(info.totalMs / 1000, buf, sizeof(buf));
