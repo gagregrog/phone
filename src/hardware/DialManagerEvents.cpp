@@ -14,7 +14,7 @@ void dialManagerEventsBegin(DialManager& mgr) {
     });
 
     mgr.addOnDigit([](int digit, const char* number) {
-        logger.infof("Dialed: %d  number: %s", digit, number);
+        logger.hardwaref("Dialed: %d  number: %s", digit, number);
         JsonDocument doc;
         dialManagerDigitFillJson(doc.to<JsonObject>(), digit, number);
         String body;

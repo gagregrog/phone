@@ -6,7 +6,7 @@
 
 void timerEventsBegin(Timer& timer) {
     timer.setOnFire([](const TimerInfo& info) {
-        logger.infof("Timer expired: id=%u pattern=%s", (unsigned)info.id, info.patternName);
+        logger.schedulerf("Timer expired: id=%u pattern=%s", (unsigned)info.id, info.patternName);
         JsonDocument doc;
         timerInfoFillJson(doc.to<JsonObject>(), info);
         String body;

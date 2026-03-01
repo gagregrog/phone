@@ -6,7 +6,7 @@
 
 void handsetEventsBegin(HandsetMonitor& handset) {
     handset.addOnChange([](bool offHook) {
-        logger.infof("Handset: %s", offHook ? "lifted" : "returned");
+        logger.hardwaref("Handset: %s", offHook ? "lifted" : "returned");
         JsonDocument doc;
         handsetFillJson(doc.to<JsonObject>(), offHook);
         String body;

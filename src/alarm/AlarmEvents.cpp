@@ -6,7 +6,7 @@
 
 void alarmEventsBegin(AlarmManager& mgr) {
     mgr.setOnFire([](const AlarmEntry& e) {
-        logger.infof("Alarm fired: id=%u %02u:%02u pattern=%s", (unsigned)e.id, e.hour, e.minute, e.patternName);
+        logger.schedulerf("Alarm fired: id=%u %02u:%02u pattern=%s", (unsigned)e.id, e.hour, e.minute, e.patternName);
         JsonDocument doc;
         alarmFillJson(doc.to<JsonObject>(), e);
         String body;

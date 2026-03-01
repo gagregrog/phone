@@ -1,4 +1,5 @@
 #include "ringer/Ringer.h"
+#include "system/Logger.h"
 
 Ringer::Ringer(MotorDriver& motor)
     : _motor(motor), _state(IDLE), _phaseStart(0),
@@ -6,7 +7,10 @@ Ringer::Ringer(MotorDriver& motor)
       _onStop(nullptr), _onStart(nullptr), _guard(nullptr) {}
 
 bool Ringer::ring(const RingPattern& pattern, uint16_t cycles) {
-  if (_guard && !_guard()) return false;
+  if (_guard && !_guard()) {
+    logger.phonef("Ring suppressed: %s", pattern.name);
+    return false;
+  }
   _pattern = &pattern;
   _phaseIndex = 0;
   _phaseStart = millis();

@@ -34,7 +34,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 #ws-badge{font-size:.72rem;padding:2px 8px;border-radius:10px;background:#14532d;color:#86efac}
 #ws-badge.off{background:#450a0a;color:#fca5a5}
 #log-out{background:#0d1117;border-radius:4px;padding:10px;height:220px;overflow-y:auto;font-family:monospace;font-size:.78rem;line-height:1.6}
-.ll-info{color:#86efac}.ll-warn{color:#fbbf24}.ll-error{color:#f87171}
+.ll-info{color:#86efac}.ll-warn{color:#fbbf24}.ll-error{color:#f87171}.lc-hardware{color:#67e8f9}.lc-scheduler{color:#fb923c}.lc-phone{color:#34d399}.lc-api{color:#93c5fd}
 .overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;align-items:center;justify-content:center}
 .overlay.open{display:flex}
 .modal{background:#1f2937;border-radius:12px;padding:36px 44px;border:1px solid #374151;position:relative;display:flex;flex-direction:column;align-items:center;gap:24px;max-height:90vh;overflow-y:auto}
@@ -689,14 +689,16 @@ async function refreshAll() {
   await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone()]);
 }
 
-function appendLog(level, msg, time) {
-  const prefix = level === 'error' ? '[ERROR]' : level === 'warn' ? '[WARN] ' : '[INFO] ';
+function appendLog(level, msg, time, category) {
+  const cat = category ? category.toUpperCase() : '';
+  const badge = cat ? `[${cat}]` : (level === 'error' ? '[ERROR]' : level === 'warn' ? '[WARN] ' : '[INFO] ');
+  const cls   = cat ? 'lc-' + category.toLowerCase() : 'll-' + level;
   const ts = time ? `[${time}] ` : '';
   function addLine(el) {
     if (!el) return;
     const line = document.createElement('div');
-    line.className = 'll-' + level;
-    line.textContent = ts + prefix + ' ' + msg;
+    line.className = cls;
+    line.textContent = ts + badge + ' ' + msg;
     el.appendChild(line);
     el.scrollTop = el.scrollHeight;
     while (el.children.length > 200) el.removeChild(el.firstChild);
@@ -761,7 +763,7 @@ function connectWS() {
     lastMsgTime = Date.now();
     try {
       const msg = JSON.parse(evt.data);
-      if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time);
+      if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time, msg.data.category);
       else if (msg.topic === 'ws/clients') { const n = msg.data.count; document.getElementById('ws-clients').textContent = n + (n === 1 ? ' client' : ' clients'); }
       else if (msg.topic === 'ring/started' || msg.topic === 'ring/stopped') updateRinger(msg.data);
       else if (msg.topic === 'timer/started') addTimerRow(msg.data);

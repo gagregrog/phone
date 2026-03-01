@@ -185,6 +185,31 @@ NVS data is still preserved when reverting.
 
 ## Logs & Debugging
 
+### Log Categories
+
+Each log entry is tagged with a category that identifies the part of the system it came from. Categories appear as the prefix in all log outputs and are color-coded in the web UI:
+
+| Category | Color | Covers |
+| ------------ | ------ | ------- |
+| `[HARDWARE]` | cyan | Raw hardware events: handset lifted/returned, dial pulses, ring motor start/stop |
+| `[SCHEDULER]` | orange | Timed events: timer expiry, alarm firing, hourly clock chime |
+| `[PHONE]` | green | Call state machine: ring suppressed/rejected/answered/stopped, handset off-hook/on-hook, dialing |
+| `[API]` | blue | HTTP requests: method, path, result |
+
+Startup and WiFi messages are uncategorized and appear as `[INFO]`, `[WARN]`, or `[ERROR]`.
+
+Example log sequence for an inbound ring that is answered and then ended:
+
+```
+[22:27:41] [HARDWARE] Ring started: us
+[22:27:44] [HARDWARE] Handset: lifted
+[22:27:44] [PHONE]    Call answered
+[22:27:49] [HARDWARE] Handset: returned
+[22:27:49] [PHONE]    Handset on hook [was IN_CALL]
+```
+
+### Log destinations
+
 Log output is written to three destinations simultaneously:
 
 - **USB serial** — always available; useful during initial setup and boot

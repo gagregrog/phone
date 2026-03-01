@@ -22,7 +22,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
 
     // GET /alarm — list all alarms
     server->on("/alarm", HTTP_GET, [](AsyncWebServerRequest* req) {
-        logger.infof("[%s] GET /alarm", req->client()->remoteIP().toString().c_str());
+        logger.apif("[%s] GET /alarm", req->client()->remoteIP().toString().c_str());
         JsonDocument doc;
         JsonArray arr = doc.to<JsonArray>();
         for (const auto& e : _alarmMgr->getAll()) {
@@ -33,7 +33,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
 
     // DELETE /alarm — delete all alarms
     server->on("/alarm", HTTP_DELETE, [](AsyncWebServerRequest* req) {
-        logger.infof("[%s] DELETE /alarm", req->client()->remoteIP().toString().c_str());
+        logger.apif("[%s] DELETE /alarm", req->client()->remoteIP().toString().c_str());
         _alarmMgr->removeAll();
         JsonDocument doc;
         doc["status"] = "cleared";
@@ -84,7 +84,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
             }
 
             uint32_t id = _alarmMgr->add(hour, minute, pattern, rings, repeat, skipWeekends);
-            logger.infof("[%s] POST /alarm: created id=%u %02u:%02u repeat=%d",
+            logger.apif("[%s] POST /alarm: created id=%u %02u:%02u repeat=%d",
                          req->client()->remoteIP().toString().c_str(),
                          (unsigned)id, (unsigned)hour, (unsigned)minute, (int)repeat);
 
@@ -176,7 +176,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
 
             JsonDocument resp;
             if (_alarmMgr->update(id, hour, minute, pattern, rings, repeat, skipWeekends)) {
-                logger.infof("[%s] PUT /alarm/%u: updated", ip.c_str(), (unsigned)id);
+                logger.apif("[%s] PUT /alarm/%u: updated", ip.c_str(), (unsigned)id);
                 const std::vector<AlarmEntry>& all = _alarmMgr->getAll();
                 for (const auto& e : all) {
                     if (e.id == id) {
@@ -189,7 +189,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
                 request->send(200, "application/json", body);
                 eventsPublish("alarm/updated", body.c_str());
             } else {
-                logger.infof("[%s] PUT /alarm/%u: not found", ip.c_str(), (unsigned)id);
+                logger.apif("[%s] PUT /alarm/%u: not found", ip.c_str(), (unsigned)id);
                 resp["error"] = "not found";
                 sendJson(request, 404, resp);
             }
@@ -206,7 +206,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
             }
             JsonDocument doc;
             if (_alarmMgr->remove(id)) {
-                logger.infof("[%s] DELETE /alarm/%u: deleted", ip.c_str(), (unsigned)id);
+                logger.apif("[%s] DELETE /alarm/%u: deleted", ip.c_str(), (unsigned)id);
                 doc["status"] = "deleted";
                 doc["id"] = id;
                 String body;
@@ -214,7 +214,7 @@ void alarmAPIBegin(AlarmManager& mgr) {
                 request->send(200, "application/json", body);
                 eventsPublish("alarm/deleted", body.c_str());
             } else {
-                logger.infof("[%s] DELETE /alarm/%u: not found", ip.c_str(), (unsigned)id);
+                logger.apif("[%s] DELETE /alarm/%u: not found", ip.c_str(), (unsigned)id);
                 doc["error"] = "not found";
                 sendJson(request, 404, doc);
             }

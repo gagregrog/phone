@@ -20,7 +20,7 @@ void timerAPIBegin(Timer& timer) {
     // GET /timer/status — list all active timers
     server->on("/timer/status", HTTP_GET,
         [&timer](AsyncWebServerRequest* request) {
-            logger.infof("[%s] GET /timer/status", request->client()->remoteIP().toString().c_str());
+            logger.apif("[%s] GET /timer/status", request->client()->remoteIP().toString().c_str());
             JsonDocument doc;
             JsonArray arr = doc.to<JsonArray>();
             for (size_t i = 0; i < timer.count(); ++i) {
@@ -34,7 +34,7 @@ void timerAPIBegin(Timer& timer) {
         [&timer](AsyncWebServerRequest* request) {
             size_t n = timer.count();
             timer.cancelAll();
-            logger.infof("[%s] POST /timer/cancel: cleared %u timers", request->client()->remoteIP().toString().c_str(), (unsigned)n);
+            logger.apif("[%s] POST /timer/cancel: cleared %u timers", request->client()->remoteIP().toString().c_str(), (unsigned)n);
             JsonDocument doc;
             doc["status"] = "cleared";
             doc["count"] = n;
@@ -51,7 +51,7 @@ void timerAPIBegin(Timer& timer) {
 
         String ip = request->client()->remoteIP().toString();
         if (request->method() != HTTP_POST) {
-            logger.warnf("[%s] 404 %s", ip.c_str(), url.c_str());
+            logger.apif("[%s] 404 %s", ip.c_str(), url.c_str());
             request->send(404, "text/plain", "Not Found");
             return true;
         }
@@ -68,7 +68,7 @@ void timerAPIBegin(Timer& timer) {
             }
             JsonDocument doc;
             if (timer.cancel(id)) {
-                logger.infof("[%s] POST /timer/cancel/%u: cancelled", ip.c_str(), (unsigned)id);
+                logger.apif("[%s] POST /timer/cancel/%u: cancelled", ip.c_str(), (unsigned)id);
                 doc["status"] = "cancelled";
                 doc["id"] = id;
                 String body;
@@ -76,7 +76,7 @@ void timerAPIBegin(Timer& timer) {
                 request->send(200, "application/json", body);
                 eventsPublish("timer/cancelled", body.c_str());
             } else {
-                logger.infof("[%s] POST /timer/cancel/%u: not found", ip.c_str(), (unsigned)id);
+                logger.apif("[%s] POST /timer/cancel/%u: not found", ip.c_str(), (unsigned)id);
                 doc["error"] = "not found";
                 sendJson(request, 404, doc);
             }
@@ -97,14 +97,14 @@ void timerAPIBegin(Timer& timer) {
 
         unsigned long durationMs = parseDuration(durStr.c_str());
         if (durationMs == 0) {
-            logger.warnf("[%s] POST %s: invalid duration", ip.c_str(), url.c_str());
+            logger.apif("[%s] POST %s: invalid duration", ip.c_str(), url.c_str());
             request->send(400, "application/json", "{\"error\":\"invalid duration\"}");
             return true;
         }
 
         const RingPattern* p = findPattern(patName.c_str());
         if (!p) {
-            logger.warnf("[%s] POST %s: unknown pattern '%s'", ip.c_str(), url.c_str(), patName.c_str());
+            logger.apif("[%s] POST %s: unknown pattern '%s'", ip.c_str(), url.c_str(), patName.c_str());
             request->send(404, "application/json", "{\"error\":\"unknown pattern\"}");
             return true;
         }
@@ -112,7 +112,7 @@ void timerAPIBegin(Timer& timer) {
         uint32_t id = timer.start(durationMs, *p);
         char timeBuf[10];
         formatDuration(durationMs / 1000, timeBuf, sizeof(timeBuf));
-        logger.infof("[%s] POST %s: timer started (id=%u, %s, %s)", ip.c_str(), url.c_str(), (unsigned)id, timeBuf, p->name);
+        logger.apif("[%s] POST %s: timer started (id=%u, %s, %s)", ip.c_str(), url.c_str(), (unsigned)id, timeBuf, p->name);
         JsonDocument doc;
         TimerInfo info{id, durationMs, durationMs, p->name};
         timerInfoFillJson(doc.to<JsonObject>(), info);

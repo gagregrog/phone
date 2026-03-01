@@ -5,9 +5,10 @@
 #include <ArduinoJson.h>
 
 void logEventsBegin() {
-    logger.setOnLog([](const char* level, const char* msg) {
+    logger.setOnLog([](const char* level, const char* category, const char* msg) {
         JsonDocument doc;
         doc["level"] = level;
+        if (category && category[0] != '\0') doc["category"] = category;
         doc["msg"]   = msg;
         struct tm t;
         if (clockGetLocalTime(&t)) {

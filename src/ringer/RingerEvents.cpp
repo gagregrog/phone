@@ -6,11 +6,11 @@
 
 void ringerEventsBegin(Ringer& ringer) {
     ringer.setOnStop([]{
-        logger.info("Ring stopped");
+        logger.hardware("Ring stopped");
         publishRingStopped();
     });
     ringer.setOnStart([](const char* pattern){
-        logger.infof("Ring started: %s", pattern);
+        logger.hardwaref("Ring started: %s", pattern);
         publishRingStarted(pattern);
     });
 }

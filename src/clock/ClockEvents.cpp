@@ -5,7 +5,7 @@
 
 void clockEventsBegin(ClockManager& mgr) {
     mgr.setOnChime([](uint16_t rings) {
-        logger.infof("Clock chimed: %u rings", (unsigned)rings);
+        logger.schedulerf("Clock chimed: %u rings", (unsigned)rings);
         char buf[32];
         JsonDocument doc;
         doc["rings"] = rings;
