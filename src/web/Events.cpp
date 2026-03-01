@@ -12,3 +12,7 @@ void eventsPublish(const char* topic, const char* payload) {
         h(topic, payload);
     }
 }
+
+void eventsReset() {
+    _handlers.clear();
+}

@@ -8,11 +8,13 @@ class Ringer {
 public:
   explicit Ringer(MotorDriver& motor);
 
-  void ring(const RingPattern& pattern, uint16_t cycles = 0);  // Start ringing (0 = infinite)
+  bool ring(const RingPattern& pattern, uint16_t cycles = 0);  // Returns false if suppressed by guard
   void ringStop();                        // Stop all ringing immediately
   void update();                          // Call every loop iteration
   bool isRinging() const;
-  void setOnStop(std::function<void()> cb);  // Called when fixed-cycle ring completes naturally
+  void setOnStop(std::function<void()> cb);   // Called when fixed-cycle ring completes naturally
+  void setOnStart(std::function<void(const char*)> cb);  // Called when ring actually starts
+  void setRingGuard(std::function<bool()> guard);        // Returns false to suppress ring
 
 private:
   MotorDriver& _motor;
@@ -24,5 +26,7 @@ private:
   const RingPattern* _pattern;
   uint8_t _phaseIndex;
   uint16_t _cyclesRemaining;  // 0 = infinite
-  std::function<void()> _onStop;
+  std::function<void()>            _onStop;
+  std::function<void(const char*)> _onStart;
+  std::function<bool()>            _guard;
 };

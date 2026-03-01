@@ -220,6 +220,14 @@ The device registers itself via mDNS as `phone.local`. If mDNS resolution is slo
    192.168.x.x    phone.local
    ```
 
+## Phone Behavior
+
+The firmware enforces standard hook-switch rules:
+
+- **Ring suppressed when off hook** — ringing will not start (via button, API, alarm, timer, or clock) if the handset is already lifted. Any `POST /ring/<pattern>` call returns `409 {"busy": true}` in this case.
+- **Pickup stops an active ring** — lifting the handset while the phone is ringing stops the bell immediately.
+- **Hang up clears all state** — returning the handset to the cradle ends any active call or dialing session and returns the phone to idle.
+
 ## Button
 
 The physical button acts as a toggle:
@@ -227,6 +235,7 @@ The physical button acts as a toggle:
 - Press once to start the US ring pattern (2s on, 4s off)
 - Press again to stop ringing
 - Stops ringing regardless of whether it was started by the button or the API
+- Does nothing if the handset is off hook
 
 ## Ringing Patterns
 
@@ -298,6 +307,12 @@ Response (5 cycles):
 
 ```json
 { "status": "uk", "cycles": 5 }
+```
+
+If the handset is off hook, an active ring is already in progress, or the phone is in a call, the request is rejected with `409 Conflict`:
+
+```json
+{ "busy": true }
 ```
 
 #### `POST /ring/stop`

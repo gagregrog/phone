@@ -199,6 +199,55 @@ void test_on_stop_fires_once_for_three_cycles(void) {
   TEST_ASSERT_EQUAL(1, callCount);
 }
 
+// --- Ring guard ---
+
+void test_guard_suppresses_ring(void) {
+  ringer->setRingGuard([]{ return false; });
+  bool result = ringer->ring(PATTERN_US);
+  TEST_ASSERT_FALSE(result);
+  TEST_ASSERT_FALSE(ringer->isRinging());
+  TEST_ASSERT_FALSE(motor.isActive());
+}
+
+void test_guard_allows_ring(void) {
+  ringer->setRingGuard([]{ return true; });
+  bool result = ringer->ring(PATTERN_US);
+  TEST_ASSERT_TRUE(result);
+  TEST_ASSERT_TRUE(ringer->isRinging());
+}
+
+void test_guard_null_allows_ring(void) {
+  // Default (no guard set) should always allow
+  bool result = ringer->ring(PATTERN_US);
+  TEST_ASSERT_TRUE(result);
+  TEST_ASSERT_TRUE(ringer->isRinging());
+}
+
+// --- onStart callback ---
+
+void test_on_start_fires_when_ring_starts(void) {
+  const char* firedPattern = nullptr;
+  ringer->setOnStart([&firedPattern](const char* p){ firedPattern = p; });
+  ringer->ring(PATTERN_US);
+  TEST_ASSERT_NOT_NULL(firedPattern);
+  TEST_ASSERT_EQUAL_STRING("us", firedPattern);
+}
+
+void test_on_start_not_fired_when_guard_suppresses(void) {
+  bool fired = false;
+  ringer->setRingGuard([]{ return false; });
+  ringer->setOnStart([&fired](const char*){ fired = true; });
+  ringer->ring(PATTERN_US);
+  TEST_ASSERT_FALSE(fired);
+}
+
+void test_on_start_fires_with_correct_pattern_name(void) {
+  const char* firedPattern = nullptr;
+  ringer->setOnStart([&firedPattern](const char* p){ firedPattern = p; });
+  ringer->ring(PATTERN_UK);
+  TEST_ASSERT_EQUAL_STRING("uk", firedPattern);
+}
+
 // --- Ring can be restarted ---
 
 void test_ring_restart_resets_state(void) {
@@ -240,6 +289,14 @@ int main(int argc, char** argv) {
   RUN_TEST(test_on_stop_fires_when_cycles_complete);
   RUN_TEST(test_on_stop_not_fired_by_external_ring_stop);
   RUN_TEST(test_on_stop_fires_once_for_three_cycles);
+
+  RUN_TEST(test_guard_suppresses_ring);
+  RUN_TEST(test_guard_allows_ring);
+  RUN_TEST(test_guard_null_allows_ring);
+
+  RUN_TEST(test_on_start_fires_when_ring_starts);
+  RUN_TEST(test_on_start_not_fired_when_guard_suppresses);
+  RUN_TEST(test_on_start_fires_with_correct_pattern_name);
 
   RUN_TEST(test_ring_restart_resets_state);
   RUN_TEST(test_update_when_idle);

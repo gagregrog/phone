@@ -13,6 +13,7 @@
 #include "hardware/DialManagerAPI.h"
 #include "ringer/Ringer.h"
 #include "ringer/RingPattern.h"
+#include "phone/PhoneController.h"
 #include "system/WifiSetup.h"
 #include "system/LogEvents.h"
 #include "web/API.h"
@@ -48,6 +49,7 @@ NVSAlarmStore alarmStore;
 AlarmManager  alarmMgr(ringer, alarmStore, clockGetLocalTime);
 ClockManager  clockMgr(ringer, clockGetLocalTime);
 DialManager   dialMgr(dialReader, handset);
+PhoneController phoneCtrl(ringer, handset, dialMgr);
 
 void setup() {
     Serial.begin(115200);
@@ -62,9 +64,15 @@ void setup() {
 
     clockBegin(TZ_STRING);
     alarmMgr.init();
+
+    // Guard internal ring callers (AlarmManager, ClockManager, Timer) from
+    // ringing when the handset is off-hook.
+    ringer.setRingGuard([&]() -> bool { return !handset.isOffHook(); });
+
     ringerEventsBegin(ringer);
     handsetEventsBegin(handset);
     dialManagerEventsBegin(dialMgr);
+    phoneCtrl.begin();   // subscribes to ring/started, ring/stopped; adds handset+dial callbacks
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
@@ -72,7 +80,7 @@ void setup() {
 
     apiInit();
     deviceAPIBegin();
-    ringerAPIBegin(ringer);
+    ringerAPIBegin(phoneCtrl);
     timerAPIBegin(timer);
     alarmAPIBegin(alarmMgr);
     clockAPIBegin(clockMgr);
@@ -88,12 +96,10 @@ void loop() {
     handset.update();
 
     if (button.wasPressed()) {
-        if (ringer.isRinging()) {
-            ringer.ringStop();
-            publishRingStopped();
+        if (phoneCtrl.isRinging()) {
+            phoneCtrl.ringStop();
         } else {
-            ringer.ring(PATTERN_US);
-            publishRingStarted("us");
+            phoneCtrl.ring(PATTERN_US);
         }
     }
 
@@ -102,6 +108,7 @@ void loop() {
     logger.handle();
     ArduinoOTA.handle();
     webSocketLoop();
+    phoneCtrl.tick(millis());
     timer.update();
     alarmMgr.tick();
     clockMgr.tick();

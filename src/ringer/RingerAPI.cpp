@@ -13,24 +13,23 @@ static void sendJson(AsyncWebServerRequest* request, int code, JsonDocument& doc
     request->send(code, "application/json", body);
 }
 
-void ringerAPIBegin(Ringer& ringer) {
+void ringerAPIBegin(PhoneController& phone) {
     AsyncWebServer* server = apiGetServer();
 
     server->on("/ring/stop", HTTP_POST,
-        [&ringer](AsyncWebServerRequest* request) {
+        [&phone](AsyncWebServerRequest* request) {
             logger.infof("[%s] POST /ring/stop", request->client()->remoteIP().toString().c_str());
-            ringer.ringStop();
+            phone.ringStop();
             JsonDocument doc;
             ringStoppedFillJson(doc.to<JsonObject>());
             sendJson(request, 200, doc);
-            publishRingStopped();
         });
 
     server->on("/ring/status", HTTP_GET,
-        [&ringer](AsyncWebServerRequest* request) {
+        [&phone](AsyncWebServerRequest* request) {
             logger.infof("[%s] GET /ring/status", request->client()->remoteIP().toString().c_str());
             JsonDocument doc;
-            doc["ringing"] = ringer.isRinging();
+            doc["ringing"] = phone.isRinging();
             sendJson(request, 200, doc);
         });
 
@@ -46,7 +45,7 @@ void ringerAPIBegin(Ringer& ringer) {
         });
 
     // NotFoundHandler: POST /ring/{pattern}[/{count}]
-    apiAddNotFoundHandler([&ringer](AsyncWebServerRequest* request) -> bool {
+    apiAddNotFoundHandler([&phone](AsyncWebServerRequest* request) -> bool {
         String url = request->url();
         if (!url.startsWith("/ring/")) return false;
 
@@ -83,13 +82,18 @@ void ringerAPIBegin(Ringer& ringer) {
             return true;
         }
 
-        ringer.ring(*p, cycles);
+        RingResult result = phone.ring(*p, cycles);
+        if (result == RingResult::BUSY) {
+            logger.infof("[%s] POST %s: busy", ip.c_str(), url.c_str());
+            request->send(409, "application/json", "{\"busy\":true}");
+            return true;
+        }
+
         logger.infof("[%s] POST %s: ringing %s", ip.c_str(), url.c_str(), p->name);
         JsonDocument doc;
         ringStartedFillJson(doc.to<JsonObject>(), p->name);
         if (cycles > 0) doc["cycles"] = cycles;
         sendJson(request, 200, doc);
-        publishRingStarted(p->name);
         return true;
     });
 }

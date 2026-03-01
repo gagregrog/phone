@@ -16,3 +16,4 @@ using EventHandler = std::function<void(const char* topic, const char* payload)>
 
 void eventsSubscribe(EventHandler handler);
 void eventsPublish(const char* topic, const char* payload);
+void eventsReset();  // Clear all subscribers — test use only

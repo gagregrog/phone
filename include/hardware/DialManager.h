@@ -3,6 +3,7 @@
 #include "hardware/HandsetMonitor.h"
 #include <functional>
 #include <string>
+#include <vector>
 
 class DialManager {
 public:
@@ -18,9 +19,9 @@ public:
     const char* number() const { return _number.c_str(); }
     bool isOffHook() const     { return _offHook; }
 
-    void setOnDialStart(DialStartCallback cb) { _onDialStart = cb; }
-    void setOnDigit(DigitCallback cb)         { _onDigit     = cb; }
-    void setOnClear(ClearCallback cb)         { _onClear     = cb; }
+    void addOnDialStart(DialStartCallback cb) { _onDialStart.push_back(cb); }
+    void addOnDigit(DigitCallback cb)         { _onDigit.push_back(cb); }
+    void addOnClear(ClearCallback cb)         { _onClear.push_back(cb); }
 
 private:
     DialReader&     _dial;
@@ -28,7 +29,7 @@ private:
     bool            _offHook = false;
     std::string     _number;
 
-    DialStartCallback _onDialStart;
-    DigitCallback     _onDigit;
-    ClearCallback     _onClear;
+    std::vector<DialStartCallback> _onDialStart;
+    std::vector<DigitCallback>     _onDigit;
+    std::vector<ClearCallback>     _onClear;
 };

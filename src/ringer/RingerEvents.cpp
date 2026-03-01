@@ -1,10 +1,18 @@
 #include "ringer/RingerEvents.h"
 #include "ringer/RingerJSON.h"
 #include "web/Events.h"
+#include "system/Logger.h"
 #include <ArduinoJson.h>
 
 void ringerEventsBegin(Ringer& ringer) {
-    ringer.setOnStop([]{ publishRingStopped(); });
+    ringer.setOnStop([]{
+        logger.info("Ring stopped");
+        publishRingStopped();
+    });
+    ringer.setOnStart([](const char* pattern){
+        logger.infof("Ring started: %s", pattern);
+        publishRingStarted(pattern);
+    });
 }
 
 void publishRingStarted(const char* pattern) {

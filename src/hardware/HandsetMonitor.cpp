@@ -14,7 +14,7 @@ void HandsetMonitor::update() {
     bool current = _btn.isPressed();
     if (current != _lastState) {
         _lastState = current;
-        if (_onChange) _onChange(current);
+        for (auto& cb : _callbacks) cb(current);
     }
 }
 

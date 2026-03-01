@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <vector>
 #include "hardware/ButtonTrigger.h"
 
 class HandsetMonitor {
@@ -11,10 +12,10 @@ public:
     void begin();
     void update();
     bool isOffHook() const;
-    void setOnChange(ChangeCallback cb) { _onChange = cb; }
+    void addOnChange(ChangeCallback cb) { _callbacks.push_back(cb); }
 
 private:
-    ButtonTrigger  _btn;
-    ChangeCallback _onChange;
-    bool           _lastState;
+    ButtonTrigger               _btn;
+    std::vector<ChangeCallback> _callbacks;
+    bool                        _lastState;
 };

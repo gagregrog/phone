@@ -1,4 +1,4 @@
 #pragma once
-#include "ringer/Ringer.h"
+#include "phone/PhoneController.h"
 
-void ringerAPIBegin(Ringer& ringer);
+void ringerAPIBegin(PhoneController& phone);

@@ -19,7 +19,7 @@ void setUp(void) {
     callCount = 0;
     handset = new HandsetMonitor(PIN_HANDSET);
     handset->begin();
-    handset->setOnChange([](bool offHook) { lastState = offHook; callCount++; });
+    handset->addOnChange([](bool offHook) { lastState = offHook; callCount++; });
 }
 
 void tearDown(void) {
@@ -37,7 +37,7 @@ void test_initial_state_off_hook(void) {
     _mock_pin_values[PIN_HANDSET] = LOW;
     handset = new HandsetMonitor(PIN_HANDSET);
     handset->begin();
-    handset->setOnChange([](bool offHook) { lastState = offHook; callCount++; });
+    handset->addOnChange([](bool offHook) { lastState = offHook; callCount++; });
     TEST_ASSERT_TRUE(handset->isOffHook());
 }
 
@@ -101,7 +101,7 @@ void test_no_crash_without_callback(void) {
     delete handset;
     handset = new HandsetMonitor(PIN_HANDSET);
     handset->begin();
-    // No setOnChange — should not crash on state change
+    // No addOnChange — should not crash on state change
     _mock_pin_values[PIN_HANDSET] = LOW;
     advance(1); advance(50);
     TEST_PASS();

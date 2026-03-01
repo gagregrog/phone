@@ -8,13 +8,13 @@ void DialManager::begin() {
 
     _dial.setOnDialStart([this]() {
         if (!_offHook) return;
-        if (_onDialStart) _onDialStart();
+        for (auto& cb : _onDialStart) cb();
     });
 
     _dial.setOnDigit([this](int digit) {
         if (!_offHook) return;
         _number += (char)('0' + digit);
-        if (_onDigit) _onDigit(digit, _number.c_str());
+        for (auto& cb : _onDigit) cb(digit, _number.c_str());
     });
 }
 
@@ -27,7 +27,7 @@ void DialManager::tick() {
 
     if (!_offHook) {
         // Went on-hook (hang up): notify listeners
-        if (_onClear) _onClear();
+        for (auto& cb : _onClear) cb();
     }
     // Went off-hook (pick up): number cleared silently
 }

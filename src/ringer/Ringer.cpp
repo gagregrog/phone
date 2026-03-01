@@ -2,15 +2,19 @@
 
 Ringer::Ringer(MotorDriver& motor)
     : _motor(motor), _state(IDLE), _phaseStart(0),
-      _pattern(nullptr), _phaseIndex(0), _cyclesRemaining(0), _onStop(nullptr) {}
+      _pattern(nullptr), _phaseIndex(0), _cyclesRemaining(0),
+      _onStop(nullptr), _onStart(nullptr), _guard(nullptr) {}
 
-void Ringer::ring(const RingPattern& pattern, uint16_t cycles) {
+bool Ringer::ring(const RingPattern& pattern, uint16_t cycles) {
+  if (_guard && !_guard()) return false;
   _pattern = &pattern;
   _phaseIndex = 0;
   _phaseStart = millis();
   _cyclesRemaining = cycles;
   _state = PATTERN;
   _motor.activate();  // Phase 0 is always ON
+  if (_onStart) _onStart(pattern.name);
+  return true;
 }
 
 void Ringer::ringStop() {
@@ -24,6 +28,14 @@ bool Ringer::isRinging() const {
 
 void Ringer::setOnStop(std::function<void()> cb) {
   _onStop = std::move(cb);
+}
+
+void Ringer::setOnStart(std::function<void(const char*)> cb) {
+  _onStart = std::move(cb);
+}
+
+void Ringer::setRingGuard(std::function<bool()> guard) {
+  _guard = std::move(guard);
 }
 
 void Ringer::update() {

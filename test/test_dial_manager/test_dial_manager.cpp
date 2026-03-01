@@ -84,7 +84,7 @@ void tearDown(void) {
 
 void test_no_digits_when_on_hook(void) {
     int digitCount = 0;
-    mgr->setOnDigit([&digitCount](int, const char*) { digitCount++; });
+    mgr->addOnDigit([&digitCount](int, const char*) { digitCount++; });
 
     // Handset is on-hook; dial a digit — callback must not fire
     dialDigit(3);
@@ -110,7 +110,7 @@ void test_clear_on_hang_up(void) {
     TEST_ASSERT_EQUAL_STRING("5", mgr->number());
 
     int clearCount = 0;
-    mgr->setOnClear([&clearCount]() { clearCount++; });
+    mgr->addOnClear([&clearCount]() { clearCount++; });
 
     hangUp();
 
@@ -126,7 +126,7 @@ void test_fresh_start_on_pickup(void) {
     TEST_ASSERT_EQUAL_STRING("7", mgr->number());
 
     int clearCount = 0;
-    mgr->setOnClear([&clearCount]() { clearCount++; });
+    mgr->addOnClear([&clearCount]() { clearCount++; });
 
     // Hang up: clear fires, number reset
     hangUp();
@@ -142,7 +142,7 @@ void test_fresh_start_on_pickup(void) {
 
 void test_dial_start_suppressed_on_hook(void) {
     int startCount = 0;
-    mgr->setOnDialStart([&startCount]() { startCount++; });
+    mgr->addOnDialStart([&startCount]() { startCount++; });
 
     // Handset on-hook: start dial rotation
     _mock_pin_values[PIN_DIAL_ACTIVE] = LOW;

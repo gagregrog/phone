@@ -5,7 +5,7 @@
 #include <ArduinoJson.h>
 
 void dialManagerEventsBegin(DialManager& mgr) {
-    mgr.setOnDialStart([]() {
+    mgr.addOnDialStart([]() {
         JsonDocument doc;
         dialManagerDialingFillJson(doc.to<JsonObject>());
         String body;
@@ -13,7 +13,7 @@ void dialManagerEventsBegin(DialManager& mgr) {
         eventsPublish("phone/dialing", body.c_str());
     });
 
-    mgr.setOnDigit([](int digit, const char* number) {
+    mgr.addOnDigit([](int digit, const char* number) {
         logger.infof("Dialed: %d  number: %s", digit, number);
         JsonDocument doc;
         dialManagerDigitFillJson(doc.to<JsonObject>(), digit, number);
@@ -22,7 +22,7 @@ void dialManagerEventsBegin(DialManager& mgr) {
         eventsPublish("phone/digit", body.c_str());
     });
 
-    mgr.setOnClear([]() {
+    mgr.addOnClear([]() {
         JsonDocument doc;
         dialManagerClearFillJson(doc.to<JsonObject>());
         String body;
