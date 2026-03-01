@@ -110,6 +110,8 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
     <div>
       <div id="hs-label" style="font-size:1rem;font-weight:600;color:#d1d5db">—</div>
       <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Hook switch</div>
+      <div id="phone-state-label" style="font-size:1rem;font-weight:600;color:#6b7280;margin-top:8px">—</div>
+      <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Call state</div>
       <div id="dial-label" style="font-size:.78rem;color:#6b7280;margin-top:6px">—</div>
       <div id="phone-number" style="font-size:1.4rem;font-weight:700;letter-spacing:.12em;color:#60a5fa;margin-top:8px;min-height:1.6rem">—</div>
     </div>
@@ -578,6 +580,36 @@ function updateHandset(d) {
   document.getElementById('hs-label-m').textContent  = d.offHook ? 'Off hook' : 'On hook';
 }
 
+const PHONE_STATE_COLORS = {
+  IDLE:     '#6b7280',
+  RINGING:  '#fcd34d',
+  OFF_HOOK: '#60a5fa',
+  DIALING:  '#60a5fa',
+  CALL_OUT: '#a78bfa',
+  IN_CALL:  '#34d399',
+};
+const PHONE_STATE_LABELS = {
+  IDLE:     'Idle',
+  RINGING:  'Ringing',
+  OFF_HOOK: 'Off hook',
+  DIALING:  'Dialing',
+  CALL_OUT: 'Calling...',
+  IN_CALL:  'In call',
+};
+
+function updatePhoneState(d) {
+  const el = document.getElementById('phone-state-label');
+  if (!el) return;
+  const state = d.state || 'IDLE';
+  el.textContent = PHONE_STATE_LABELS[state] || state;
+  el.style.color = PHONE_STATE_COLORS[state] || '#6b7280';
+}
+
+async function loadPhoneState() {
+  const data = await req('GET', '/phone/state');
+  if (data) updatePhoneState(data);
+}
+
 async function loadHandset() {
   const data = await req('GET', '/handset/status');
   const label = document.getElementById('hs-label');
@@ -686,7 +718,7 @@ async function loadDeviceIP() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone()]);
+  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone(), loadPhoneState()]);
 }
 
 function appendLog(level, msg, time, category) {
@@ -775,6 +807,7 @@ function connectWS() {
       else if (msg.topic === 'alarm/cleared') clearAlarmTable();
       else if (msg.topic === 'clock/updated') updateClock(msg.data);
       else if (msg.topic === 'handset/up' || msg.topic === 'handset/down') updateHandset(msg.data);
+      else if (msg.topic === 'phone/state') updatePhoneState(msg.data);
       else if (msg.topic === 'phone/dialing') updateDialDialing();
       else if (msg.topic === 'phone/digit') updateDialDigit(msg.data);
       else if (msg.topic === 'phone/clear') updatePhoneClear();

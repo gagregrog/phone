@@ -288,6 +288,74 @@ void test_call_answered_no_op_when_not_in_call_out(void) {
     TEST_ASSERT_EQUAL(PhoneState::IDLE, phone->getState());
 }
 
+// --- phone/state events ---
+
+void test_phone_state_published_on_ring(void) {
+    char captured[128] = {};
+    eventsSubscribe([&captured](const char* t, const char* p) {
+        if (strcmp(t, "phone/state") == 0)
+            strncpy(captured, p, sizeof(captured) - 1);
+    });
+    phone->ring(PATTERN_US);
+    TEST_ASSERT_NOT_NULL(strstr(captured, "RINGING"));
+}
+
+void test_phone_state_published_on_ring_stop(void) {
+    char captured[128] = {};
+    eventsSubscribe([&captured](const char* t, const char* p) {
+        if (strcmp(t, "phone/state") == 0)
+            strncpy(captured, p, sizeof(captured) - 1);
+    });
+    phone->ring(PATTERN_US);
+    phone->ringStop();
+    TEST_ASSERT_NOT_NULL(strstr(captured, "IDLE"));
+}
+
+void test_phone_state_published_on_off_hook(void) {
+    char captured[128] = {};
+    eventsSubscribe([&captured](const char* t, const char* p) {
+        if (strcmp(t, "phone/state") == 0)
+            strncpy(captured, p, sizeof(captured) - 1);
+    });
+    goOffHook();
+    TEST_ASSERT_NOT_NULL(strstr(captured, "OFF_HOOK"));
+}
+
+void test_phone_state_published_on_answer(void) {
+    char captured[128] = {};
+    eventsSubscribe([&captured](const char* t, const char* p) {
+        if (strcmp(t, "phone/state") == 0)
+            strncpy(captured, p, sizeof(captured) - 1);
+    });
+    phone->ring(PATTERN_US);
+    goOffHook();
+    TEST_ASSERT_NOT_NULL(strstr(captured, "IN_CALL"));
+}
+
+void test_phone_state_published_on_hang_up(void) {
+    char captured[128] = {};
+    eventsSubscribe([&captured](const char* t, const char* p) {
+        if (strcmp(t, "phone/state") == 0)
+            strncpy(captured, p, sizeof(captured) - 1);
+    });
+    phone->ring(PATTERN_US);
+    goOffHook();
+    goOnHook();
+    TEST_ASSERT_NOT_NULL(strstr(captured, "IDLE"));
+}
+
+void test_phone_ring_rejected_event_when_busy(void) {
+    char captured[128] = {};
+    eventsSubscribe([&captured](const char* t, const char* p) {
+        if (strcmp(t, "phone/ring-rejected") == 0)
+            strncpy(captured, p, sizeof(captured) - 1);
+    });
+    phone->ring(PATTERN_US);
+    phone->ring(PATTERN_UK);
+    TEST_ASSERT_NOT_NULL(strstr(captured, "RINGING"));
+    TEST_ASSERT_NOT_NULL(strstr(captured, "uk"));
+}
+
 // --- Hang up clears all active states ---
 
 void test_hang_up_from_dialing_to_idle(void) {
@@ -349,6 +417,13 @@ int main(int argc, char** argv) {
 
     RUN_TEST(test_hang_up_from_dialing_to_idle);
     RUN_TEST(test_hang_up_from_call_out_to_idle);
+
+    RUN_TEST(test_phone_state_published_on_ring);
+    RUN_TEST(test_phone_state_published_on_ring_stop);
+    RUN_TEST(test_phone_state_published_on_off_hook);
+    RUN_TEST(test_phone_state_published_on_answer);
+    RUN_TEST(test_phone_state_published_on_hang_up);
+    RUN_TEST(test_phone_ring_rejected_event_when_busy);
 
     return UNITY_END();
 }

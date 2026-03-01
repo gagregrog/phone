@@ -19,6 +19,7 @@
 #include "web/API.h"
 #include "web/DeviceAPI.h"
 #include "ringer/RingerAPI.h"
+#include "phone/PhoneAPI.h"
 #include "timer/TimerAPI.h"
 #include "timer/Timer.h"
 #include "alarm/NVSAlarmStore.h"
@@ -81,6 +82,7 @@ void setup() {
     apiInit();
     deviceAPIBegin();
     ringerAPIBegin(phoneCtrl);
+    phoneAPIBegin(phoneCtrl);
     timerAPIBegin(timer);
     alarmAPIBegin(alarmMgr);
     clockAPIBegin(clockMgr);

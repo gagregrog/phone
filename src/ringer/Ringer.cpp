@@ -4,11 +4,12 @@
 Ringer::Ringer(MotorDriver& motor)
     : _motor(motor), _state(IDLE), _phaseStart(0),
       _pattern(nullptr), _phaseIndex(0), _cyclesRemaining(0),
-      _onStop(nullptr), _onStart(nullptr), _guard(nullptr) {}
+      _onStop(nullptr), _onStart(nullptr), _onBlocked(nullptr), _guard(nullptr) {}
 
 bool Ringer::ring(const RingPattern& pattern, uint16_t cycles) {
   if (_guard && !_guard()) {
     logger.phonef("Ring suppressed: %s", pattern.name);
+    if (_onBlocked) _onBlocked(pattern.name);
     return false;
   }
   _pattern = &pattern;
@@ -36,6 +37,10 @@ void Ringer::setOnStop(std::function<void()> cb) {
 
 void Ringer::setOnStart(std::function<void(const char*)> cb) {
   _onStart = std::move(cb);
+}
+
+void Ringer::setOnBlocked(std::function<void(const char*)> cb) {
+  _onBlocked = std::move(cb);
 }
 
 void Ringer::setRingGuard(std::function<bool()> guard) {

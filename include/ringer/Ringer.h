@@ -12,9 +12,10 @@ public:
   void ringStop();                        // Stop all ringing immediately
   void update();                          // Call every loop iteration
   bool isRinging() const;
-  void setOnStop(std::function<void()> cb);   // Called when fixed-cycle ring completes naturally
-  void setOnStart(std::function<void(const char*)> cb);  // Called when ring actually starts
-  void setRingGuard(std::function<bool()> guard);        // Returns false to suppress ring
+  void setOnStop(std::function<void()> cb);                    // Called when fixed-cycle ring completes naturally
+  void setOnStart(std::function<void(const char*)> cb);       // Called when ring actually starts
+  void setOnBlocked(std::function<void(const char*)> cb);     // Called when guard suppresses a ring
+  void setRingGuard(std::function<bool()> guard);             // Returns false to suppress ring
 
 private:
   MotorDriver& _motor;
@@ -28,5 +29,6 @@ private:
   uint16_t _cyclesRemaining;  // 0 = infinite
   std::function<void()>            _onStop;
   std::function<void(const char*)> _onStart;
+  std::function<void(const char*)> _onBlocked;
   std::function<bool()>            _guard;
 };

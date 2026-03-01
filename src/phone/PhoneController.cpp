@@ -4,6 +4,16 @@
 #include "system/Logger.h"
 #include <string.h>
 
+static void publishPhoneState(const char* state, const char* number = nullptr) {
+    char buf[64];
+    if (number && number[0] != '\0') {
+        snprintf(buf, sizeof(buf), "{\"state\":\"%s\",\"number\":\"%s\"}", state, number);
+    } else {
+        snprintf(buf, sizeof(buf), "{\"state\":\"%s\"}", state);
+    }
+    eventsPublish("phone/state", buf);
+}
+
 static const char* stateName(PhoneState s) {
     switch (s) {
         case PhoneState::IDLE:     return "IDLE";
@@ -29,9 +39,15 @@ void PhoneController::begin() {
     // (e.g., natural cycle completion via _onStop).
     eventsSubscribe([this](const char* topic, const char*) {
         if (strcmp(topic, "ring/started") == 0) {
-            if (_state == PhoneState::IDLE) _state = PhoneState::RINGING;
+            if (_state == PhoneState::IDLE) {
+                _state = PhoneState::RINGING;
+                publishPhoneState("RINGING");
+            }
         } else if (strcmp(topic, "ring/stopped") == 0) {
-            if (_state == PhoneState::RINGING) _state = PhoneState::IDLE;
+            if (_state == PhoneState::RINGING) {
+                _state = PhoneState::IDLE;
+                publishPhoneState("IDLE");
+            }
         }
     });
 
@@ -53,6 +69,7 @@ void PhoneController::tick(unsigned long now) {
         const char* number = _dial.number();
         logger.phonef("Dial complete: %s", number);
         _state = PhoneState::CALL_OUT;
+        publishPhoneState("CALL_OUT", number);
         if (_onDialComplete) _onDialComplete(number);
     }
 }
@@ -60,12 +77,16 @@ void PhoneController::tick(unsigned long now) {
 RingResult PhoneController::ring(const RingPattern& pattern, uint16_t cycles) {
     if (_state != PhoneState::IDLE) {
         logger.phonef("Ring rejected [%s]: %s", stateName(_state), pattern.name);
+        char buf[64];
+        snprintf(buf, sizeof(buf), "{\"blockedBy\":\"%s\",\"pattern\":\"%s\"}", stateName(_state), pattern.name);
+        eventsPublish("phone/ring-rejected", buf);
         return RingResult::BUSY;
     }
     // Set state before ring() so that when _onStart fires ring/started,
     // the event subscriber above sees _state != IDLE and skips.
     _state = PhoneState::RINGING;
     _ringer.ring(pattern, cycles);
+    publishPhoneState("RINGING");
     return RingResult::STARTED;
 }
 
@@ -74,6 +95,7 @@ void PhoneController::ringStop() {
     // Set state before publishing so the ring/stopped subscriber skips.
     _state = PhoneState::IDLE;
     logger.phone("Ring stopped");
+    publishPhoneState("IDLE");
     _ringer.ringStop();
     publishRingStopped();
 }
@@ -82,6 +104,7 @@ void PhoneController::callAnswered() {
     if (_state != PhoneState::CALL_OUT) return;
     logger.phone("Call answered");
     _state = PhoneState::IN_CALL;
+    publishPhoneState("IN_CALL");
 }
 
 void PhoneController::onHandsetChanged(bool offHook) {
@@ -90,6 +113,7 @@ void PhoneController::onHandsetChanged(bool offHook) {
             case PhoneState::IDLE:
                 logger.phone("Handset off hook");
                 _state = PhoneState::OFF_HOOK;
+                publishPhoneState("OFF_HOOK");
                 if (_onOffHook) _onOffHook();
                 break;
             case PhoneState::RINGING:
@@ -97,6 +121,7 @@ void PhoneController::onHandsetChanged(bool offHook) {
                 // Set state before publishRingStopped so the ring/stopped
                 // subscriber sees IN_CALL and skips back to IDLE.
                 _state = PhoneState::IN_CALL;
+                publishPhoneState("IN_CALL");
                 _ringer.ringStop();
                 publishRingStopped();
                 if (_onAnswered) _onAnswered();
@@ -112,6 +137,7 @@ void PhoneController::onHandsetChanged(bool offHook) {
                           _state == PhoneState::DIALING);
         if (wasActive) logger.phonef("Handset on hook [was %s]", stateName(_state));
         _state = PhoneState::IDLE;
+        publishPhoneState("IDLE");
         if (wasActive && _onHungUp) _onHungUp();
     }
 }
@@ -120,6 +146,7 @@ void PhoneController::onDialActivity() {
     if (_state == PhoneState::OFF_HOOK) {
         logger.phone("Dialing started");
         _state = PhoneState::DIALING;
+        publishPhoneState("DIALING");
         _dialActivitySinceLastTick = true;
     } else if (_state == PhoneState::DIALING) {
         _dialActivitySinceLastTick = true;

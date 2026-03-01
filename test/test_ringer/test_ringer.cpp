@@ -248,6 +248,31 @@ void test_on_start_fires_with_correct_pattern_name(void) {
   TEST_ASSERT_EQUAL_STRING("uk", firedPattern);
 }
 
+// --- onBlocked callback ---
+
+void test_on_blocked_fires_when_guard_suppresses(void) {
+  const char* blockedPattern = nullptr;
+  ringer->setRingGuard([]{ return false; });
+  ringer->setOnBlocked([&blockedPattern](const char* p){ blockedPattern = p; });
+  ringer->ring(PATTERN_US);
+  TEST_ASSERT_NOT_NULL(blockedPattern);
+  TEST_ASSERT_EQUAL_STRING("us", blockedPattern);
+}
+
+void test_on_blocked_not_fired_when_ring_succeeds(void) {
+  bool fired = false;
+  ringer->setOnBlocked([&fired](const char*){ fired = true; });
+  ringer->ring(PATTERN_US);
+  TEST_ASSERT_FALSE(fired);
+}
+
+void test_on_blocked_not_fired_when_no_guard(void) {
+  bool fired = false;
+  ringer->setOnBlocked([&fired](const char*){ fired = true; });
+  ringer->ring(PATTERN_US);
+  TEST_ASSERT_FALSE(fired);
+}
+
 // --- Ring can be restarted ---
 
 void test_ring_restart_resets_state(void) {
@@ -300,6 +325,10 @@ int main(int argc, char** argv) {
 
   RUN_TEST(test_ring_restart_resets_state);
   RUN_TEST(test_update_when_idle);
+
+  RUN_TEST(test_on_blocked_fires_when_guard_suppresses);
+  RUN_TEST(test_on_blocked_not_fired_when_ring_succeeds);
+  RUN_TEST(test_on_blocked_not_fired_when_no_guard);
 
   return UNITY_END();
 }

@@ -13,6 +13,13 @@ void ringerEventsBegin(Ringer& ringer) {
         logger.hardwaref("Ring started: %s", pattern);
         publishRingStarted(pattern);
     });
+    ringer.setOnBlocked([](const char* pattern){
+        JsonDocument doc;
+        doc["pattern"] = pattern;
+        String body;
+        serializeJson(doc, body);
+        eventsPublish("phone/ring-suppressed", body.c_str());
+    });
 }
 
 void publishRingStarted(const char* pattern) {
