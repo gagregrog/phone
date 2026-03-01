@@ -9,7 +9,7 @@
 
 static AsyncWebSocket _ws("/ws");
 static std::deque<String> _logBuffer;
-static const size_t LOG_BUFFER_SIZE = 100;
+static const size_t LOG_BUFFER_SIZE = 50;
 static std::map<uint32_t, String> _clientIPs;
 
 static void publishClientCount() {
@@ -24,8 +24,14 @@ void webSocketAPIBegin() {
                    AwsEventType type, void*, uint8_t*, size_t) {
         if (type == WS_EVT_CONNECT) {
             _clientIPs[client->id()] = client->remoteIP().toString();
-            for (const auto& entry : _logBuffer) {
-                client->text(entry);
+            if (!_logBuffer.empty()) {
+                String batch = "{\"topic\":\"log/history\",\"data\":[";
+                for (size_t i = 0; i < _logBuffer.size(); i++) {
+                    if (i > 0) batch += ',';
+                    batch += _logBuffer[i];
+                }
+                batch += "]}";
+                client->text(batch);
             }
             logger.infof("[%s] WS client %u connected", _clientIPs[client->id()].c_str(), client->id());
             publishClientCount();
@@ -47,7 +53,7 @@ void webSocketAPIBegin() {
         msg += "}";
 
         if (strcmp(topic, "log/message") == 0) {
-            _logBuffer.push_back(msg);
+            _logBuffer.push_back(String(payload));
             if (_logBuffer.size() > LOG_BUFFER_SIZE) {
                 _logBuffer.pop_front();
             }

@@ -108,9 +108,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <path class="ring-wave rw4" d="M 108 45 Q 116 29 108 13" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
     <div>
-      <div id="hs-label" style="font-size:1rem;font-weight:600;color:#d1d5db">—</div>
-      <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Hook switch</div>
-      <div id="phone-state-label" style="font-size:1rem;font-weight:600;color:#6b7280;margin-top:8px">—</div>
+      <div id="phone-state-label" style="font-size:1rem;font-weight:600;color:#6b7280">—</div>
       <div style="font-size:.78rem;color:#6b7280;margin-top:2px">Call state</div>
       <div id="dial-label" style="font-size:.78rem;color:#6b7280;margin-top:6px">—</div>
       <div id="phone-number" style="font-size:1.4rem;font-weight:700;letter-spacing:.12em;color:#60a5fa;margin-top:8px;min-height:1.6rem">—</div>
@@ -242,8 +240,8 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <path class="ring-wave rw4" d="M 108 45 Q 116 29 108 13" fill="none" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
     <div style="text-align:center">
-      <div id="hs-label-m" style="font-size:2rem;font-weight:600;color:#d1d5db">—</div>
-      <div style="font-size:1rem;color:#6b7280;margin-top:4px">Hook switch</div>
+      <div id="phone-state-label-m" style="font-size:2rem;font-weight:600;color:#6b7280">—</div>
+      <div style="font-size:1rem;color:#6b7280;margin-top:4px">Call state</div>
       <div id="dial-label-m" style="font-size:1rem;color:#6b7280;margin-top:14px">—</div>
       <div id="phone-number-m" style="font-size:2.8rem;font-weight:700;letter-spacing:.14em;color:#60a5fa;margin-top:10px;min-height:3.2rem">—</div>
     </div>
@@ -572,12 +570,10 @@ async function toggleClockMode() {
 }
 
 function updateHandset(d) {
-  document.getElementById('hs-down').style.display  = d.offHook ? 'none' : '';
-  document.getElementById('hs-up').style.display    = d.offHook ? '' : 'none';
-  document.getElementById('hs-label').textContent   = d.offHook ? 'Off hook' : 'On hook';
+  document.getElementById('hs-down').style.display   = d.offHook ? 'none' : '';
+  document.getElementById('hs-up').style.display     = d.offHook ? '' : 'none';
   document.getElementById('hs-down-m').style.display = d.offHook ? 'none' : '';
   document.getElementById('hs-up-m').style.display   = d.offHook ? '' : 'none';
-  document.getElementById('hs-label-m').textContent  = d.offHook ? 'Off hook' : 'On hook';
 }
 
 const PHONE_STATE_COLORS = {
@@ -598,11 +594,13 @@ const PHONE_STATE_LABELS = {
 };
 
 function updatePhoneState(d) {
-  const el = document.getElementById('phone-state-label');
-  if (!el) return;
   const state = d.state || 'IDLE';
-  el.textContent = PHONE_STATE_LABELS[state] || state;
-  el.style.color = PHONE_STATE_COLORS[state] || '#6b7280';
+  const text  = PHONE_STATE_LABELS[state] || state;
+  const color = PHONE_STATE_COLORS[state] || '#6b7280';
+  for (const id of ['phone-state-label', 'phone-state-label-m']) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = text; el.style.color = color; }
+  }
 }
 
 async function loadPhoneState() {
@@ -612,8 +610,7 @@ async function loadPhoneState() {
 
 async function loadHandset() {
   const data = await req('GET', '/handset/status');
-  const label = document.getElementById('hs-label');
-  if (!data) { if (label) label.textContent = 'Unknown'; return; }
+  if (!data) return;
   updateHandset(data);
 }
 
@@ -796,6 +793,7 @@ function connectWS() {
     try {
       const msg = JSON.parse(evt.data);
       if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time, msg.data.category);
+      else if (msg.topic === 'log/history') msg.data.forEach(d => appendLog(d.level, d.msg, d.time, d.category));
       else if (msg.topic === 'ws/clients') { const n = msg.data.count; document.getElementById('ws-clients').textContent = n + (n === 1 ? ' client' : ' clients'); }
       else if (msg.topic === 'ring/started' || msg.topic === 'ring/stopped') updateRinger(msg.data);
       else if (msg.topic === 'timer/started') addTimerRow(msg.data);
