@@ -14,3 +14,6 @@
 
 // Handset hook switch
 #define PIN_HANDSET 13  // LOW = off hook (handset lifted), HIGH = on hook
+
+// Carbon microphone ADC input (ADC1_CH6 — bias-conditioned, 0–2.2 V, ADC_ATTEN_DB_6)
+#define PIN_MIC_ADC 34

@@ -3,11 +3,16 @@
 #include "web/Events.h"
 #include "system/Logger.h"
 #include <ESPAsyncWebServer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
 #include <deque>
 #include <map>
 #include <string.h>
 
+struct BinaryFrame { uint8_t* data; size_t len; };
+
 static AsyncWebSocket _ws("/ws");
+static QueueHandle_t _binaryQueue = NULL;
 static std::deque<String> _logBuffer;
 static const size_t LOG_BUFFER_SIZE = 50;
 static std::map<uint32_t, String> _clientIPs;
@@ -23,6 +28,7 @@ void webSocketAPIBegin() {
     _ws.onEvent([](AsyncWebSocket*, AsyncWebSocketClient* client,
                    AwsEventType type, void*, uint8_t*, size_t) {
         if (type == WS_EVT_CONNECT) {
+            client->setCloseClientOnQueueFull(false);
             _clientIPs[client->id()] = client->remoteIP().toString();
             if (!_logBuffer.empty()) {
                 String batch = "{\"topic\":\"log/history\",\"data\":[";
@@ -63,10 +69,31 @@ void webSocketAPIBegin() {
         _ws.textAll(msg);
     });
 
+    _binaryQueue = xQueueCreate(8, sizeof(BinaryFrame));
     apiGetServer()->addHandler(&_ws);
 }
 
+void wsEnqueueBinary(uint8_t* data, size_t len) {
+    if (!_binaryQueue) { delete[] data; return; }
+    BinaryFrame f{data, len};
+    if (xQueueSend(_binaryQueue, &f, 0) != pdTRUE) {
+        delete[] data;  // queue full — drop frame rather than block the mic task
+    }
+}
+
 void webSocketLoop() {
+    // Drain the binary queue here, on the main loop task, so _ws is never
+    // touched from the mic FreeRTOS task.
+    BinaryFrame f;
+    while (xQueueReceive(_binaryQueue, &f, 0) == pdTRUE) {
+        for (auto& client : _ws.getClients()) {
+            if (client.status() == WS_CONNECTED && client.canSend()) {
+                client.binary(f.data, f.len);
+            }
+        }
+        delete[] f.data;
+    }
+
     _ws.cleanupClients();
 
     static unsigned long lastPingMs = 0;

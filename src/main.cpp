@@ -35,6 +35,8 @@
 #include "web/Events.h"
 #include "ringer/RingerEvents.h"
 #include "web/WebSocketAPI.h"
+#include "hardware/MicReader.h"
+#include "hardware/MicEvents.h"
 
 #ifndef TZ_STRING
 #define TZ_STRING "UTC0"
@@ -51,6 +53,7 @@ AlarmManager  alarmMgr(ringer, alarmStore, clockGetLocalTime);
 ClockManager  clockMgr(ringer, clockGetLocalTime);
 DialManager   dialMgr(dialReader, handset);
 PhoneController phoneCtrl(ringer, handset, dialMgr);
+MicReader micReader(ADC1_CHANNEL_6, 44100, 1024);
 
 void setup() {
     Serial.begin(115200);
@@ -78,6 +81,7 @@ void setup() {
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
     logEventsBegin();
+    micReader.begin();
 
     apiInit();
     deviceAPIBegin();
@@ -89,6 +93,9 @@ void setup() {
     handsetAPIBegin(handset);
     dialManagerAPIBegin(dialMgr);
     webSocketAPIBegin();
+    micEventsBegin(micReader);
+    // micReader.setTestTone(true);  // DEBUG: 440 Hz sine — remove after testing
+    micReader.startTask();
     webUIBegin();
     apiStart();
 }

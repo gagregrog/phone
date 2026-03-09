@@ -184,6 +184,16 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   </div>
 </div>
 
+<!-- Microphone -->
+<div class="card">
+  <div class="hdr" style="margin-bottom:8px">
+    <h2 style="margin:0">Microphone</h2>
+    <button id="audio-btn" class="bs" onclick="toggleAudio()">Listen</button>
+  </div>
+  <canvas id="mic-canvas" width="600" height="100"
+    style="width:100%;background:#111;border-radius:4px;display:block"></canvas>
+</div>
+
 <!-- Logs -->
 <div class="card">
   <div class="hdr" style="margin-bottom:8px">
@@ -769,6 +779,7 @@ function connectWS() {
   }
   if (ws && ws.readyState !== WebSocket.CLOSED) return;
   ws = new WebSocket(`ws://${location.host}/ws`);
+  ws.binaryType = 'arraybuffer';
   const badge = document.getElementById('ws-badge');
 
   ws.onopen = () => {
@@ -790,6 +801,11 @@ function connectWS() {
 
   ws.onmessage = (evt) => {
     lastMsgTime = Date.now();
+    if (evt.data instanceof ArrayBuffer) {
+      const view = new Uint8Array(evt.data);
+      if (view[0] === 0x01) handleAudioSamples(new Int16Array(evt.data.slice(1)));
+      return;
+    }
     try {
       const msg = JSON.parse(evt.data);
       if (msg.topic === 'log/message') appendLog(msg.data.level, msg.data.msg, msg.data.time, msg.data.category);
@@ -811,6 +827,116 @@ function connectWS() {
       else if (msg.topic === 'phone/clear') updatePhoneClear();
     } catch(e) {}
   };
+}
+
+// ── Microphone waveform + audio playback ─────────────────────────────────────
+const MIC_BUF_LEN = 600;
+const _micRing = new Float32Array(MIC_BUF_LEN);
+let _micHead = 0;
+let _micLastDataMs = 0;
+let _micRafId = null;
+
+// Audio playback state
+let _audioCtx = null;
+let _audioEnabled = false;
+let _nextPlayTime = 0;
+
+function toggleAudio() {
+  if (!_audioEnabled) {
+    if (!_audioCtx) _audioCtx = new AudioContext();
+    else _audioCtx.resume();
+    _audioEnabled = true;
+    _nextPlayTime = 0;
+    const btn = document.getElementById('audio-btn');
+    btn.textContent = 'Stop'; btn.className = 'bd';
+  } else {
+    _audioEnabled = false;
+    if (_audioCtx) _audioCtx.suspend();
+    const btn = document.getElementById('audio-btn');
+    btn.textContent = 'Listen'; btn.className = 'bs';
+  }
+}
+
+let _clipLogCounter = 0;
+let _sampleCount = 0;
+let _sampleCountStart = 0;
+function handleAudioSamples(int16s) {
+  // ── rate + clipping diagnostic ──
+  const _diagNow = Date.now();
+  if (!_sampleCountStart) _sampleCountStart = _diagNow;
+  _sampleCount += int16s.length;
+  if (++_clipLogCounter % 43 === 0) {
+    const elapsed = (_diagNow - _sampleCountStart) / 1000;
+    const rate = elapsed > 0 ? Math.round(_sampleCount / elapsed) : 0;
+    let min = 32767, max = -32768, clips = 0;
+    for (let i = 0; i < int16s.length; i++) {
+      if (int16s[i] < min) min = int16s[i];
+      if (int16s[i] > max) max = int16s[i];
+      if (int16s[i] === 32767 || int16s[i] === -32768) clips++;
+    }
+    console.log(`MIC rate=${rate}Hz min=${min} max=${max} clips=${clips}/${int16s.length}`);
+  }
+  // ── waveform ring buffer ──
+  for (let i = 0; i < int16s.length; i++) {
+    _micRing[_micHead % MIC_BUF_LEN] = int16s[i] / 32768.0;
+    _micHead++;
+  }
+  _micLastDataMs = Date.now();
+  if (_micRafId === null) _micRafId = requestAnimationFrame(_drawMicWaveform);
+
+  // ── audio playback ──
+  if (!_audioEnabled || !_audioCtx || _audioCtx.state !== 'running') return;
+
+  const float32 = new Float32Array(int16s.length);
+  for (let i = 0; i < int16s.length; i++) float32[i] = int16s[i] / 32768.0;
+
+  const buf = _audioCtx.createBuffer(1, float32.length, 44100);
+  buf.copyToChannel(float32, 0);
+
+  const src = _audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.connect(_audioCtx.destination);
+
+  const now = _audioCtx.currentTime;
+  // Re-sync if fallen behind or drifted more than 300ms ahead
+  if (_nextPlayTime < now || _nextPlayTime > now + 0.3) _nextPlayTime = now;
+  src.start(_nextPlayTime);
+  _nextPlayTime += buf.duration;
+}
+
+function _drawMicWaveform() {
+  const canvas = document.getElementById('mic-canvas');
+  if (!canvas) { _micRafId = null; return; }
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height, mid = h / 2;
+
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, 0, w, h);
+
+  // mid-line reference
+  ctx.strokeStyle = '#1f2937';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(w, mid); ctx.stroke();
+
+  // waveform
+  ctx.strokeStyle = '#22c55e';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  const start = _micHead; // oldest sample
+  for (let i = 0; i < MIC_BUF_LEN; i++) {
+    const s = _micRing[(start + i) % MIC_BUF_LEN];
+    const x = (i / (MIC_BUF_LEN - 1)) * w;
+    const y = mid - s * (mid - 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Stop RAF after 2s of silence to avoid burning CPU
+  if (Date.now() - _micLastDataMs < 2000) {
+    _micRafId = requestAnimationFrame(_drawMicWaveform);
+  } else {
+    _micRafId = null;
+  }
 }
 
 // Watchdog: retry every 3s regardless of whether onclose fired

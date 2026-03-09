@@ -76,6 +76,78 @@ When a digit is dialed it is logged via the standard log output.
 
 No external pull-up resistor is needed — the firmware enables the ESP32's internal pull-up on GPIO 13. The switch is open when the handset is resting in the cradle (on hook) and closes when the handset is lifted (off hook), pulling GPIO 13 LOW.
 
+#### Carbon Microphone
+
+An ITT telephone carbon microphone is conditioned and level-shifted before feeding the ESP32 ADC.
+
+**Bias and preamplifier circuit**
+
+The carbon mic requires a DC bias current to operate. A 9 V supply feeds current through a 330 Ω resistor into the mic, which returns to GND. The junction between the resistor and the mic is the AC signal tap point. A 10 µF electrolytic capacitor (positive leg toward the resistor) AC-couples that tap into pin 3 (non-inverting input) of an NTE823 audio amplifier IC.
+
+| NTE823 Pin | Connection                  |
+| ---------- | --------------------------- |
+| 2          | GND                         |
+| 3          | Mic tap via 10 µF cap (+)   |
+| 4          | GND                         |
+| 6          | 9 V supply                  |
+| 5          | Amplifier output            |
+
+The amplifier output (pin 5) passes through a 220 µF electrolytic capacitor (positive leg toward pin 5) into a 470 Ω resistor in series with a potentiometer that acts as a volume control. The wiper of the potentiometer is the audio output node, which swings approximately ±3 V around the amplifier's bias point.
+
+**Level-shift / bias circuit (amplifier output → ESP32 ADC)**
+
+The ±3 V swing from the volume control is re-centered to the 0–3.3 V range accepted by the ESP32 ADC using a resistive voltage divider with a mid-rail reference:
+
+```
+3.3V ──[R1: 10kΩ]──┐
+                    ├── ESP32 ADC input
+Audio Out ─[R3: 10kΩ]┤
+                    ├──[C1: 100nF]── GND
+GND ──[R2: 10kΩ]───┘
+```
+
+R1 and R2 create a 1.65 V mid-rail reference. R3 mixes the audio signal into that reference, centering the swing around 1.65 V. C1 (100 nF) bypasses high-frequency noise on the ADC node to GND. The resulting signal stays within the 0–3.3 V ADC input range.
+
+**Full signal chain**
+
+```
+9V ──[330Ω]──┬──── Carbon Mic ──── GND
+             │
+         [10µF +]              ← AC coupling into amp
+             │
+         NTE823 pin 3 (input)
+         NTE823 pin 6 ──── 9V
+         NTE823 pin 2 ──── GND
+         NTE823 pin 4 ──── GND
+         NTE823 pin 5 (output)
+             │
+         [220µF +]             ← AC coupling out of amp
+             │
+          [470Ω]
+             │ (wiper)
+           [POT]
+             │ (left leg)
+         [R3: 10kΩ]
+             │
+             ├──────────────────── ESP32 ADC
+             ├──[C1: 100nF]──── GND
+             │
+   ┌─────────┴─────────┐
+[R1: 10kΩ]         [R2: 10kΩ]
+   │                    │
+  3.3V                 GND
+```
+
+#### Carbon Microphone ADC
+
+| Signal           | ESP32 Pin       | Notes                                              |
+| ---------------- | --------------- | -------------------------------------------------- |
+| Mic bias output  | GPIO 34 (ADC1_CH6) | Bias-conditioned 0–2.2 V; `ADC_ATTEN_DB_6` attenuation |
+
+GPIO 34 is input-only and has no internal pull-up. The level-shift circuit described above ensures the signal stays within the 0–2.2 V range suited to `ADC_ATTEN_DB_6`. Do not use `ADC_ATTEN_DB_11` (0–3.3 V) — the top third of the ADC range would be wasted.
+
+The firmware samples at 8 kHz using I2S ADC DMA mode (`I2S_MODE_ADC_BUILT_IN`) and streams 64-sample packets of 16-bit signed PCM over WebSocket to browser clients. Audio is only sampled when at least one WebSocket client is connected.
+
 #### Pin Reference
 
 All pin assignments are defined in `include/pins.h` and can be changed there if needed.
@@ -287,6 +359,7 @@ A browser-based dashboard is served at `http://phone.local/` (port 80). The sour
 - **Alarms** — view scheduled alarms, add new alarms, edit existing alarms in-place, delete individually or all
 - **Hourly chime** — see enabled state and mode, toggle on/off, switch between `n_chimes` and `single` mode
 - **Handset** — live on-hook / off-hook status displayed as an animated SVG of the rotary phone; updates in real time via WebSocket
+- **Microphone** — live oscilloscope waveform fed by the carbon mic via I2S ADC DMA at 8 kHz; active only while the browser tab is open
 - **Logs** — live streaming log console with color-coded severity (info/warn/error) and timestamps. Displays the last 100 log entries buffered on the device, so recent history is visible immediately on page load without needing to wait for new messages. A **Clear** button wipes the display.
 
 The dashboard connects via WebSocket (`ws://phone.local/ws`) and updates in real time whenever state changes — including hardware-triggered events like timer expiry, alarm fires, button presses, and hourly chimes. A **Live / Offline** badge in the header shows the connection status; the page reconnects automatically if the connection drops.
