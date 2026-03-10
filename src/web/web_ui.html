@@ -836,7 +836,10 @@ let _micHead = 0;
 let _micLastDataMs = 0;
 let _micRafId = null;
 
-// Audio playback state
+// Audio playback: schedule each incoming frame as a BufferSource at the next
+// available slot.  _nextPlayTime tracks where the audio timeline is; if it
+// falls behind real time (slow delivery) or drifts ahead (tab backgrounded),
+// we re-sync to prevent accumulated latency or silence gaps.
 let _audioCtx = null;
 let _audioEnabled = false;
 let _nextPlayTime = 0;
@@ -868,13 +871,12 @@ function handleAudioSamples(int16s) {
   if (++_clipLogCounter % 43 === 0) {
     const elapsed = (_diagNow - _sampleCountStart) / 1000;
     const rate = elapsed > 0 ? Math.round(_sampleCount / elapsed) : 0;
-    let min = 32767, max = -32768, clips = 0;
+    let min = 32767, max = -32768;
     for (let i = 0; i < int16s.length; i++) {
       if (int16s[i] < min) min = int16s[i];
       if (int16s[i] > max) max = int16s[i];
-      if (int16s[i] === 32767 || int16s[i] === -32768) clips++;
     }
-    console.log(`MIC rate=${rate}Hz min=${min} max=${max} clips=${clips}/${int16s.length}`);
+    console.log(`MIC rate=${rate}Hz min=${min} max=${max}`);
   }
   // ── waveform ring buffer ──
   for (let i = 0; i < int16s.length; i++) {
@@ -890,6 +892,9 @@ function handleAudioSamples(int16s) {
   const float32 = new Float32Array(int16s.length);
   for (let i = 0; i < int16s.length; i++) float32[i] = int16s[i] / 32768.0;
 
+  // Sample rate must match what the ESP32 I2S ADC actually produces.
+  // We configure 44100 but the default PLL lands at ~37–41 kHz; 44100 here
+  // produces the most natural-sounding pitch in practice.
   const buf = _audioCtx.createBuffer(1, float32.length, 44100);
   buf.copyToChannel(float32, 0);
 
@@ -898,7 +903,8 @@ function handleAudioSamples(int16s) {
   src.connect(_audioCtx.destination);
 
   const now = _audioCtx.currentTime;
-  // Re-sync if fallen behind or drifted more than 300ms ahead
+  // Cap latency at 300ms: re-sync if we've fallen behind or drifted too far
+  // ahead (e.g. tab was backgrounded and frames queued up).
   if (_nextPlayTime < now || _nextPlayTime > now + 0.3) _nextPlayTime = now;
   src.start(_nextPlayTime);
   _nextPlayTime += buf.duration;

@@ -18,8 +18,14 @@ void micEventsBegin(MicReader& mic) {
         mic.setEnabled(count > 0);
     });
 
-    // Batch two DMA buffers into one WS frame to halve frame rate (~21/sec instead of ~43).
-    // wsEnqueueBinary takes ownership of the buffer — do not delete[] after calling it.
+    // Batch two 1024-sample DMA reads into one 2048-sample WS frame.
+    // At 44100 Hz this yields ~21 frames/sec.  Sending 1024-sample frames
+    // (~43/sec) overwhelmed the AsyncWebSocket queue and caused crashes
+    // (abort in _queueMessage).  Doubling the frame size halves queue pressure
+    // while adding only ~23 ms of extra latency per frame.
+    //
+    // Frame format: [0x01 (type byte) | int16 PCM samples...]
+    // wsEnqueueBinary takes ownership of the buffer.
     static uint8_t* pending = nullptr;
     static size_t pendingBytes = 0;
 

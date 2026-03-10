@@ -94,7 +94,6 @@ void setup() {
     dialManagerAPIBegin(dialMgr);
     webSocketAPIBegin();
     micEventsBegin(micReader);
-    // micReader.setTestTone(true);  // DEBUG: 440 Hz sine — remove after testing
     micReader.startTask();
     webUIBegin();
     apiStart();
