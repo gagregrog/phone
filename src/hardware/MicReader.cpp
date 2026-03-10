@@ -16,6 +16,7 @@ void MicReader::begin() {
     cfg.intr_alloc_flags = ESP_INTR_FLAG_LEVEL1;
     cfg.dma_buf_count = 8;
     cfg.dma_buf_len = (int)_bufferSize;
+    // toggling to true will increase the sample rate from ~37k to 41k
     cfg.use_apll = false;
     cfg.tx_desc_auto_clear = false;
     cfg.fixed_mclk = 0;
@@ -52,9 +53,14 @@ void MicReader::taskFunc(void* param) {
 }
 
 void MicReader::runTask() {
+    bool useLowPass = true;
     int16_t* buf = new int16_t[_bufferSize];
     float dcEstimate = 0;
     bool dcInitialized = false;
+    float lpState = 0;
+    // Single-pole low-pass: fc=4000Hz, fs≈37730Hz
+    // alpha = 1 - exp(-2*pi*fc/fs) ≈ 0.49
+    const float lpAlpha = 0.49f;
     float tonePhase = 0;
     const float toneFreq = 440.0f;
     const float toneAmp = 16000.0f;
@@ -92,9 +98,17 @@ void MicReader::runTask() {
             // Track DC level with exponential moving average
             if (!dcInitialized) { dcEstimate = raw; dcInitialized = true; }
             dcEstimate += 0.001f * (raw - dcEstimate);
+            
+            int32_t sample;
 
-            // AC-coupled: remove DC, then amplify
-            int32_t sample = (int32_t)((raw - dcEstimate) * 50.0f);
+            if (useLowPass) {
+            // Low-pass filter the AC-coupled signal before amplification
+                float centered = raw - dcEstimate;
+                lpState += lpAlpha * (centered - lpState);
+                sample = (int32_t)(lpState * 50.0f);
+            } else {
+                sample = (int32_t)((raw - dcEstimate) * 50.0f);
+            }
             if (sample > 32767) sample = 32767;
             if (sample < -32768) sample = -32768;
             buf[i] = (int16_t)sample;

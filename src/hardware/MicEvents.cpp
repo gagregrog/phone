@@ -18,13 +18,26 @@ void micEventsBegin(MicReader& mic) {
         mic.setEnabled(count > 0);
     });
 
-    // On each DMA buffer: pack binary frame [0x01 | int16 samples...] and enqueue.
+    // Batch two DMA buffers into one WS frame to halve frame rate (~21/sec instead of ~43).
     // wsEnqueueBinary takes ownership of the buffer — do not delete[] after calling it.
+    static uint8_t* pending = nullptr;
+    static size_t pendingBytes = 0;
+
     mic.setOnBuffer([](const int16_t* samples, size_t count) {
-        size_t frameLen = 1 + count * sizeof(int16_t);
-        uint8_t* frame = new uint8_t[frameLen];
-        frame[0] = 0x01;  // audio message type
-        memcpy(frame + 1, samples, count * sizeof(int16_t));
-        wsEnqueueBinary(frame, frameLen);
+        size_t payloadBytes = count * sizeof(int16_t);
+
+        if (!pending) {
+            // First half: allocate frame for two buffers, copy first batch
+            pending = new uint8_t[1 + payloadBytes * 2];
+            pending[0] = 0x01;
+            memcpy(pending + 1, samples, payloadBytes);
+            pendingBytes = payloadBytes;
+        } else {
+            // Second half: append and send
+            memcpy(pending + 1 + pendingBytes, samples, payloadBytes);
+            wsEnqueueBinary(pending, 1 + pendingBytes + payloadBytes);
+            pending = nullptr;
+            pendingBytes = 0;
+        }
     });
 }
