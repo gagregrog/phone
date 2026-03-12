@@ -188,10 +188,19 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 <div class="card">
   <div class="hdr" style="margin-bottom:8px">
     <h2 style="margin:0">Microphone</h2>
-    <button id="audio-btn" class="bs" onclick="toggleAudio()">Listen</button>
+    <div style="display:flex;gap:8px">
+      <button class="bm" onclick="openMicModal()">Expand</button>
+      <button id="audio-btn" class="bs" onclick="toggleAudio()">Listen</button>
+    </div>
   </div>
   <canvas id="mic-canvas" width="600" height="100"
     style="width:100%;background:#111;border-radius:4px;display:block"></canvas>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+    <label for="mic-window" style="font-size:0.8em;color:#9ca3af;white-space:nowrap">Window:</label>
+    <input id="mic-window" type="range" min="0" max="30" step="0.5" value="30"
+      style="flex:1" oninput="_setMicWindow(+this.value)">
+    <span id="mic-window-label" style="font-size:0.8em;color:#9ca3af;min-width:3ch;text-align:right">30s</span>
+  </div>
 </div>
 
 <!-- Logs -->
@@ -204,6 +213,25 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
     </div>
   </div>
   <div id="log-out"></div>
+</div>
+
+<!-- Microphone modal -->
+<div id="mic-modal" class="overlay" onclick="if(event.target===this)closeMicModal()">
+  <div class="modal" style="width:90vw;max-width:1200px;align-items:stretch">
+    <button class="mcls" onclick="closeMicModal()">&#x2715;</button>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h2 style="margin:0">Microphone</h2>
+      <button id="audio-btn-m" class="bs" onclick="toggleAudio()" style="margin-right:36px">Listen</button>
+    </div>
+    <canvas id="mic-canvas-m" width="1200" height="200"
+      style="width:100%;background:#111;border-radius:4px;display:block"></canvas>
+    <div style="display:flex;align-items:center;gap:8px">
+      <label for="mic-window-m" style="font-size:0.8em;color:#9ca3af;white-space:nowrap">Window:</label>
+      <input id="mic-window-m" type="range" min="0" max="30" step="0.5" value="30"
+        style="flex:1" oninput="_setMicWindow(+this.value)">
+      <span id="mic-window-label-m" style="font-size:0.8em;color:#9ca3af;min-width:3ch;text-align:right">30s</span>
+    </div>
+  </div>
 </div>
 
 <!-- Handset modal -->
@@ -634,7 +662,7 @@ function closeHandsetModal() {
   if (!document.querySelector('.overlay.open')) document.body.style.overflow = '';
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeHandsetModal(); closeLogsModal(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeHandsetModal(); closeLogsModal(); closeMicModal(); } });
 
 function formatPhoneNumber(digits) {
   const n = digits.length;
@@ -830,9 +858,44 @@ function connectWS() {
 }
 
 // ── Microphone waveform + audio playback ─────────────────────────────────────
-const MIC_BUF_LEN = 600;
+const MIC_SAMPLE_RATE = 44100;
+const MIC_HISTORY_SECS = 30;
+const MIC_BUF_LEN = MIC_SAMPLE_RATE * MIC_HISTORY_SECS; // 30s ring buffer (~5 MB)
 const _micRing = new Float32Array(MIC_BUF_LEN);
-let _micHead = 0;
+let _micHead = 0;       // next write position (unbounded)
+let _micWindowSecs = 30; // display window; controlled by slider or scroll wheel
+
+function _setMicWindow(secs) {
+  _micWindowSecs = secs <= 0.25 ? 0 : Math.min(30, Math.max(0.5, Math.round(secs * 2) / 2));
+  const text = _micWindowSecs === 0 ? 'Live' : _micWindowSecs + 's';
+  ['mic-window',   'mic-window-m'  ].forEach(id => { const el = document.getElementById(id); if (el) el.value = _micWindowSecs; });
+  ['mic-window-label', 'mic-window-label-m'].forEach(id => { const el = document.getElementById(id); if (el) el.textContent = text; });
+  if (_micRafId === null) _micRafId = requestAnimationFrame(_drawMicWaveform);
+}
+
+function openMicModal() {
+  document.getElementById('mic-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  if (_micRafId === null) _micRafId = requestAnimationFrame(_drawMicWaveform);
+}
+
+function closeMicModal() {
+  document.getElementById('mic-modal').classList.remove('open');
+  if (!document.querySelector('.overlay.open')) document.body.style.overflow = '';
+}
+
+function _micWheelHandler(e) {
+  e.preventDefault();
+  const step = _micWindowSecs <= 0.5 ? 0.5 : _micWindowSecs <= 2 ? 0.5 : _micWindowSecs <= 5 ? 1 : 2;
+  _setMicWindow(_micWindowSecs + (e.deltaY > 0 ? step : -step));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  ['mic-canvas', 'mic-canvas-m'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('wheel', _micWheelHandler, { passive: false });
+  });
+});
 let _micLastDataMs = 0;
 let _micRafId = null;
 
@@ -844,20 +907,25 @@ let _audioCtx = null;
 let _audioEnabled = false;
 let _nextPlayTime = 0;
 
+function _syncAudioBtns() {
+  const on = _audioEnabled;
+  ['audio-btn', 'audio-btn-m'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = on ? 'Stop' : 'Listen'; btn.className = on ? 'bd' : 'bs'; }
+  });
+}
+
 function toggleAudio() {
   if (!_audioEnabled) {
     if (!_audioCtx) _audioCtx = new AudioContext();
     else _audioCtx.resume();
     _audioEnabled = true;
     _nextPlayTime = 0;
-    const btn = document.getElementById('audio-btn');
-    btn.textContent = 'Stop'; btn.className = 'bd';
   } else {
     _audioEnabled = false;
     if (_audioCtx) _audioCtx.suspend();
-    const btn = document.getElementById('audio-btn');
-    btn.textContent = 'Listen'; btn.className = 'bs';
   }
+  _syncAudioBtns();
 }
 
 let _clipLogCounter = 0;
@@ -910,34 +978,60 @@ function handleAudioSamples(int16s) {
   _nextPlayTime += buf.duration;
 }
 
-function _drawMicWaveform() {
-  const canvas = document.getElementById('mic-canvas');
-  if (!canvas) { _micRafId = null; return; }
+function _drawMicToCanvas(canvas) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width, h = canvas.height, mid = h / 2;
+  const amp = mid - 2;
 
   ctx.fillStyle = '#111';
   ctx.fillRect(0, 0, w, h);
 
-  // mid-line reference
   ctx.strokeStyle = '#1f2937';
   ctx.lineWidth = 1;
   ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(w, mid); ctx.stroke();
 
-  // waveform
-  ctx.strokeStyle = '#22c55e';
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  const start = _micHead; // oldest sample
-  for (let i = 0; i < MIC_BUF_LEN; i++) {
-    const s = _micRing[(start + i) % MIC_BUF_LEN];
-    const x = (i / (MIC_BUF_LEN - 1)) * w;
-    const y = mid - s * (mid - 2);
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  if (_micWindowSecs === 0) {
+    ctx.strokeStyle = '#22c55e';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    const snapStart = _micHead + (MIC_BUF_LEN - w);
+    for (let i = 0; i < w; i++) {
+      const s = _micRing[(snapStart + i) % MIC_BUF_LEN];
+      const y = mid - s * amp;
+      if (i === 0) ctx.moveTo(i, y); else ctx.lineTo(i, y);
+    }
+    ctx.stroke();
+  } else {
+    const windowSamples = Math.round(_micWindowSecs * MIC_SAMPLE_RATE);
+    const samplesPerPx = windowSamples / w;
+    ctx.fillStyle = '#22c55e';
+    const oldest = _micHead + (MIC_BUF_LEN - windowSamples);
+    for (let px = 0; px < w; px++) {
+      const sStart = Math.floor(px * samplesPerPx);
+      const sEnd   = Math.floor((px + 1) * samplesPerPx);
+      let mn = 0, mx = 0;
+      for (let j = sStart; j < sEnd; j++) {
+        const s = _micRing[(oldest + j) % MIC_BUF_LEN];
+        if (s < mn) mn = s;
+        if (s > mx) mx = s;
+      }
+      const yTop = mid - mx * amp;
+      const yBot = mid - mn * amp;
+      ctx.fillRect(px, yTop, 1, Math.max(1, yBot - yTop));
+    }
   }
-  ctx.stroke();
+}
 
-  // Stop RAF after 2s of silence to avoid burning CPU
+function _drawMicWaveform() {
+  const canvas = document.getElementById('mic-canvas');
+  if (!canvas) { _micRafId = null; return; }
+  _drawMicToCanvas(canvas);
+  const modal = document.getElementById('mic-modal');
+  if (modal && modal.classList.contains('open')) {
+    const cm = document.getElementById('mic-canvas-m');
+    if (cm) _drawMicToCanvas(cm);
+  }
+
   if (Date.now() - _micLastDataMs < 2000) {
     _micRafId = requestAnimationFrame(_drawMicWaveform);
   } else {
