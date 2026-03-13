@@ -1,6 +1,7 @@
 #include "hardware/MicEvents.h"
 #include "web/Events.h"
 #include "web/WebSocketAPI.h"
+#include <new>
 #include <string.h>
 
 void micEventsBegin(MicReader& mic) {
@@ -34,7 +35,8 @@ void micEventsBegin(MicReader& mic) {
 
         if (!pending) {
             // First half: allocate frame for two buffers, copy first batch
-            pending = new uint8_t[1 + payloadBytes * 2];
+            pending = new (std::nothrow) uint8_t[1 + payloadBytes * 2];
+            if (!pending) return;  // heap exhausted — drop frame
             pending[0] = 0x01;
             memcpy(pending + 1, samples, payloadBytes);
             pendingBytes = payloadBytes;

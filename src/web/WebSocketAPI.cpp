@@ -66,7 +66,11 @@ void webSocketAPIBegin() {
         }
 
         if (_ws.count() == 0) return;
-        _ws.textAll(msg);
+        for (auto& client : _ws.getClients()) {
+            if (client.status() == WS_CONNECTED && client.canSend()) {
+                client.text(msg);
+            }
+        }
     });
 
     _binaryQueue = xQueueCreate(8, sizeof(BinaryFrame));
