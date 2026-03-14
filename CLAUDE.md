@@ -45,7 +45,7 @@ When adding a new library, pin it to the exact version being implemented (e.g. `
 
 ## Logging
 
-Use `logger` (not `Serial` directly) for all log output after WiFi is up. Never log sensitive values — this includes passwords, tokens, or raw credential data. The Telnet server transmits log output in plaintext with no authentication.
+Use `logger` (not `Serial` directly) for all log output after WiFi is up. Never log sensitive values — this includes passwords, tokens, or raw credential data.
 
 ## Documentation
 

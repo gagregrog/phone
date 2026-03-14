@@ -282,17 +282,9 @@ Example log sequence for an inbound ring that is answered and then ended:
 
 ### Log destinations
 
-Log output is written to three destinations simultaneously:
+Log output is written to two destinations simultaneously:
 
 - **USB serial** — always available; useful during initial setup and boot
-- **Telnet** (port 23) — available once WiFi is up; connect from any terminal:
-  ```
-  telnet phone.local
-  ```
-  Or using netcat:
-  ```
-  nc phone.local 23
-  ```
 - **Web UI** — the Logs panel in the dashboard streams live log output over WebSocket, with timestamps (once NTP is synced) and color-coded severity. The device buffers the last 100 log entries, so history is visible immediately when you open the page.
 
 Boot messages before WiFi is up are only visible on USB serial.

@@ -5,9 +5,6 @@
 
 class Logger {
 public:
-  void begin(uint16_t port = 23);
-  void handle();
-
   // Severity-based (uncategorized) — use for startup messages and warnings
   void info(const char* msg);
   void warn(const char* msg);

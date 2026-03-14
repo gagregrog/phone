@@ -3,8 +3,6 @@
 #include <string>
 
 extern std::string _mock_serial_output;
-extern std::string _mock_telnet_output;
-extern int _mock_telnet_available;
 
 static std::string _cb_level;
 static std::string _cb_category;
@@ -13,8 +11,6 @@ static int _cb_count;
 
 void setUp() {
   _mock_serial_output.clear();
-  _mock_telnet_output.clear();
-  _mock_telnet_available = 0;
   _cb_level.clear();
   _cb_category.clear();
   _cb_msg.clear();
@@ -88,14 +84,6 @@ void test_hardwaref_formats(void) {
 void test_phonef_formats(void) {
   logger.phonef("Ring rejected [%s]: %s", "OFF_HOOK", "us");
   TEST_ASSERT_EQUAL_STRING("[PHONE] Ring rejected [OFF_HOOK]: us\n", _mock_serial_output.c_str());
-}
-
-// --- Dual output ---
-
-void test_outputs_to_both_serial_and_telnet(void) {
-  logger.info("broadcast");
-  TEST_ASSERT_EQUAL_STRING("[INFO] broadcast\n", _mock_serial_output.c_str());
-  TEST_ASSERT_EQUAL_STRING("[INFO] broadcast\n", _mock_telnet_output.c_str());
 }
 
 // --- onLog callback ---
@@ -174,14 +162,6 @@ void test_callback_not_called_when_unset(void) {
   TEST_ASSERT_EQUAL(0, _cb_count);
 }
 
-// --- Input draining ---
-
-void test_handle_drains_telnet_input(void) {
-  _mock_telnet_available = 5;
-  logger.handle();
-  TEST_ASSERT_EQUAL(0, _mock_telnet_available);
-}
-
 int main(int argc, char** argv) {
   UNITY_BEGIN();
 
@@ -198,9 +178,6 @@ int main(int argc, char** argv) {
   RUN_TEST(test_errorf_formats);
   RUN_TEST(test_hardwaref_formats);
   RUN_TEST(test_phonef_formats);
-
-  RUN_TEST(test_outputs_to_both_serial_and_telnet);
-  RUN_TEST(test_handle_drains_telnet_input);
 
   RUN_TEST(test_callback_fires_on_info);
   RUN_TEST(test_callback_fires_on_warn);

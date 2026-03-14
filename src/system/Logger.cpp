@@ -1,20 +1,8 @@
 #include "system/Logger.h"
 #include <Arduino.h>
-#include <TelnetStream.h>
 #include <stdarg.h>
 
 Logger logger;
-
-void Logger::begin(uint16_t port) {
-  TelnetStream.begin(port);
-}
-
-void Logger::handle() {
-  // TelnetStream has no API to disable input. Drain the receive buffer each
-  // loop iteration so incoming bytes from connected clients are discarded
-  // rather than accumulating.
-  while (TelnetStream.available()) TelnetStream.read();
-}
 
 void Logger::setOnLog(std::function<void(const char*, const char*, const char*)> cb) {
   _onLog = std::move(cb);
@@ -23,8 +11,6 @@ void Logger::setOnLog(std::function<void(const char*, const char*, const char*)>
 void Logger::_log(const char* prefix, const char* level, const char* category, const char* msg) {
   Serial.print(prefix);
   Serial.println(msg);
-  TelnetStream.print(prefix);
-  TelnetStream.println(msg);
   if (_onLog) _onLog(level, category, msg);
 }
 

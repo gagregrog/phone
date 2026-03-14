@@ -64,7 +64,6 @@ void setup() {
     dialMgr.begin();
 
     wifiSetupBegin("PhoneSetup");
-    logger.begin();
 
     clockBegin(TZ_STRING);
     alarmMgr.init();
@@ -113,7 +112,6 @@ void loop() {
 
     dialReader.tick();
     dialMgr.tick();
-    logger.handle();
     ArduinoOTA.handle();
     webSocketLoop();
     phoneCtrl.tick(millis());
