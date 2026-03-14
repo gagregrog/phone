@@ -219,8 +219,9 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   <div class="hdr" style="margin-bottom:8px">
     <h2 style="margin:0">Microphone</h2>
     <div style="display:flex;gap:8px">
+      <button id="mic-toggle-btn" class="bs" onclick="toggleMic()">Enable</button>
       <button class="bm" onclick="openMicModal()">Expand</button>
-      <button id="audio-btn" class="bs" onclick="toggleAudio()">Listen</button>
+      <button id="audio-btn" class="bm" style="display:none" onclick="toggleAudio()">Unmute</button>
     </div>
   </div>
   <canvas id="mic-canvas" width="600" height="100"
@@ -251,7 +252,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
     <button class="mcls" onclick="closeMicModal()">&#x2715;</button>
     <div style="display:flex;align-items:center;justify-content:space-between">
       <h2 style="margin:0">Microphone</h2>
-      <button id="audio-btn-m" class="bs" onclick="toggleAudio()" style="margin-right:36px">Listen</button>
+      <button id="audio-btn-m" class="bm" style="display:none;margin-right:36px" onclick="toggleAudio()">Unmute</button>
     </div>
     <canvas id="mic-canvas-m" width="1200" height="200"
       style="width:100%;background:#111;border-radius:4px;display:block"></canvas>
@@ -945,7 +946,7 @@ async function loadDeviceIP() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone(), loadPhoneState(), loadPhoneBook()]);
+  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone(), loadPhoneState(), loadPhoneBook(), loadMic()]);
 }
 
 function appendLog(level, msg, time, category) {
@@ -1049,6 +1050,7 @@ function connectWS() {
       else if (msg.topic === 'phonebook/updated') updatePbRow(msg.data);
       else if (msg.topic === 'phonebook/deleted') removePbRow(msg.data.id);
       else if (msg.topic === 'phonebook/cleared') clearPbTable();
+      else if (msg.topic === 'mic/status') updateMicStatus(msg.data);
     } catch(e) {}
   };
 }
@@ -1103,11 +1105,40 @@ let _audioCtx = null;
 let _audioEnabled = false;
 let _nextPlayTime = 0;
 
+let _micEnabled = false;
+
+function updateMicStatus(d) {
+  _micEnabled = d.enabled;
+  const btn = document.getElementById('mic-toggle-btn');
+  btn.textContent = _micEnabled ? 'Disable' : 'Enable';
+  btn.className = _micEnabled ? 'bd' : 'bs';
+  // Show/hide unmute buttons based on mic state
+  ['audio-btn', 'audio-btn-m'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = _micEnabled ? '' : 'none';
+  });
+  // If mic disabled, also mute audio
+  if (!_micEnabled && _audioEnabled) {
+    _audioEnabled = false;
+    if (_audioCtx) _audioCtx.suspend();
+    _syncAudioBtns();
+  }
+}
+
+async function loadMic() {
+  const data = await req('GET', '/mic/status');
+  if (data) updateMicStatus(data);
+}
+
+async function toggleMic() {
+  await req('POST', _micEnabled ? '/mic/disable' : '/mic/enable');
+}
+
 function _syncAudioBtns() {
   const on = _audioEnabled;
   ['audio-btn', 'audio-btn-m'].forEach(id => {
     const btn = document.getElementById(id);
-    if (btn) { btn.textContent = on ? 'Stop' : 'Listen'; btn.className = on ? 'bd' : 'bs'; }
+    if (btn) { btn.textContent = on ? 'Mute' : 'Unmute'; btn.className = on ? 'bw' : 'bm'; }
   });
 }
 

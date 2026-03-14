@@ -41,6 +41,7 @@
 #include "web/WebSocketAPI.h"
 #include "hardware/MicReader.h"
 #include "hardware/MicEvents.h"
+#include "hardware/MicAPI.h"
 
 #ifndef TZ_STRING
 #define TZ_STRING "UTC0"
@@ -102,6 +103,7 @@ void setup() {
     phoneBookAPIBegin(phoneBookMgr);
     webSocketAPIBegin();
     micEventsBegin(micReader);
+    micAPIBegin(micReader);
     micReader.startTask();
     webUIBegin();
     apiStart();

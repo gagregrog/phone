@@ -3,11 +3,17 @@
 
 static const char* MASK_VALUE = "********";
 
+// Case-insensitive substring search without heap allocation
+static bool containsCI(const char* haystack, const char* needle) {
+    size_t nlen = strlen(needle);
+    for (const char* p = haystack; *p; p++) {
+        if (strncasecmp(p, needle, nlen) == 0) return true;
+    }
+    return false;
+}
+
 static bool isSensitiveHeader(const char* name) {
-    // Case-insensitive check for "authorization" or "token" anywhere in name
-    String lower(name);
-    lower.toLowerCase();
-    return lower.indexOf("authorization") >= 0 || lower.indexOf("token") >= 0;
+    return containsCI(name, "authorization") || containsCI(name, "token");
 }
 
 void phoneBookFillJson(JsonObject obj, const PhoneBookEntry& e, bool mask) {

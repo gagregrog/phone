@@ -4,19 +4,44 @@
 #include <new>
 #include <string.h>
 
+static MicReader* _mic = nullptr;
+static bool _manualEnabled = false;
+static int _wsClients = 0;
+
+static void updateMicState() {
+    if (_mic) _mic->setEnabled(_manualEnabled && _wsClients > 0);
+}
+
+static void publishStatus() {
+    const char* payload = _manualEnabled ? "{\"enabled\":true}" : "{\"enabled\":false}";
+    eventsPublish("mic/status", payload);
+}
+
+void micSetEnabled(bool enabled) {
+    if (enabled == _manualEnabled) return;
+    _manualEnabled = enabled;
+    updateMicState();
+    publishStatus();
+}
+
+bool micIsEnabled() {
+    return _manualEnabled;
+}
+
 void micEventsBegin(MicReader& mic) {
-    // Gate sampling: enable only when WebSocket clients are connected
-    eventsSubscribe([&mic](const char* topic, const char* payload) {
+    _mic = &mic;
+
+    // Gate sampling: enable only when manually enabled AND WebSocket clients connected
+    eventsSubscribe([](const char* topic, const char* payload) {
         if (strcmp(topic, "ws/clients") != 0) return;
-        // payload is e.g. {"count":2}
-        // Simple parse: find digits after "count":
         const char* p = strstr(payload, "\"count\":");
         if (!p) return;
-        p += 8; // skip "count":
+        p += 8;
         while (*p == ' ') p++;
         int count = 0;
         while (*p >= '0' && *p <= '9') { count = count * 10 + (*p - '0'); p++; }
-        mic.setEnabled(count > 0);
+        _wsClients = count;
+        updateMicState();
     });
 
     // Batch two 1024-sample DMA reads into one 2048-sample WS frame.
