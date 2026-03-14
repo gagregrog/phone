@@ -28,6 +28,10 @@
 #include "alarm/AlarmAPI.h"
 #include "clock/ClockManager.h"
 #include "clock/ClockAPI.h"
+#include "phonebook/NVSPhoneBookStore.h"
+#include "phonebook/PhoneBookManager.h"
+#include "phonebook/PhoneBookCaller.h"
+#include "phonebook/PhoneBookAPI.h"
 #include "timer/TimerEvents.h"
 #include "alarm/AlarmEvents.h"
 #include "clock/ClockEvents.h"
@@ -53,6 +57,8 @@ AlarmManager  alarmMgr(ringer, alarmStore, clockGetLocalTime);
 ClockManager  clockMgr(ringer, clockGetLocalTime);
 DialManager   dialMgr(dialReader, handset);
 PhoneController phoneCtrl(ringer, handset, dialMgr);
+NVSPhoneBookStore phoneBookStore;
+PhoneBookManager  phoneBookMgr(phoneBookStore);
 MicReader micReader(ADC1_CHANNEL_6, 44100, 1024);
 
 void setup() {
@@ -67,6 +73,7 @@ void setup() {
 
     clockBegin(TZ_STRING);
     alarmMgr.init();
+    phoneBookMgr.init();
 
     // Guard internal ring callers (AlarmManager, ClockManager, Timer) from
     // ringing when the handset is off-hook.
@@ -76,6 +83,7 @@ void setup() {
     handsetEventsBegin(handset);
     dialManagerEventsBegin(dialMgr);
     phoneCtrl.begin();   // subscribes to ring/started, ring/stopped; adds handset+dial callbacks
+    phoneBookCallerBegin(phoneBookMgr, phoneCtrl);
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
@@ -91,6 +99,7 @@ void setup() {
     clockAPIBegin(clockMgr);
     handsetAPIBegin(handset);
     dialManagerAPIBegin(dialMgr);
+    phoneBookAPIBegin(phoneBookMgr);
     webSocketAPIBegin();
     micEventsBegin(micReader);
     micReader.startTask();

@@ -1,0 +1,33 @@
+#pragma once
+#include "phonebook/PhoneBookEntry.h"
+#include "phonebook/PhoneBookStore.h"
+#include <functional>
+#include <vector>
+
+class PhoneBookManager {
+public:
+    PhoneBookManager(PhoneBookStore& store);
+
+    uint32_t add(const PhoneBookEntry& entry);   // returns assigned id
+    bool     update(uint32_t id, const PhoneBookEntry& entry);
+    bool     remove(uint32_t id);
+    void     removeAll();
+    const std::vector<PhoneBookEntry>& getAll() const;
+    const PhoneBookEntry* findById(uint32_t id) const;
+    const PhoneBookEntry* findByNumber(const char* number) const;
+
+    void setOnCall(std::function<void(const PhoneBookEntry&)> cb);
+    void setOnNotFound(std::function<void(const char*)> cb);
+
+    void init();                  // load from store
+    void dial(const char* number); // lookup + fire callback
+
+private:
+    PhoneBookStore& _store;
+    std::vector<PhoneBookEntry> _entries;
+    uint32_t _nextId;
+    std::function<void(const PhoneBookEntry&)> _onCall;
+    std::function<void(const char*)> _onNotFound;
+
+    void save();
+};

@@ -184,6 +184,36 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   </div>
 </div>
 
+<!-- Phone Book -->
+<div class="card">
+  <h2>Phone Book</h2>
+  <div id="pb-edit-banner" style="display:none;font-size:.82rem;color:#fbbf24;margin-bottom:8px;padding:5px 8px;background:#451a03;border-radius:4px">Editing entry <span id="pb-edit-id"></span> &mdash; fill in fields below and click Update</div>
+  <div class="row">
+    <div class="field"><label>Number</label><input id="pb-number" placeholder="411" style="width:80px"></div>
+    <div class="field"><label>Name</label><input id="pb-name" placeholder="Kitchen lights" style="width:150px"></div>
+    <div class="field"><label>URL</label><input id="pb-url" placeholder="http://192.168.1.50/json/state" style="width:220px"></div>
+    <div class="field"><label>Method</label>
+      <select id="pb-method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+    </div>
+  </div>
+  <div class="row">
+    <div class="field"><label>Body</label><input id="pb-req-body" placeholder='{"on":true}' style="width:300px"></div>
+  </div>
+  <div id="pb-headers"></div>
+  <div class="row">
+    <button class="bm" onclick="pbAddHeaderRow()">+ Header</button>
+  </div>
+  <div class="row">
+    <button class="bs" id="pb-submit" onclick="submitPhoneBook()">Add Entry</button>
+    <button class="bm" id="pb-cancel" style="display:none" onclick="cancelPbEdit()">Cancel Edit</button>
+    <button id="pb-delete-all" class="bd" style="display:none" onclick="clearPhoneBook()">Delete All</button>
+  </div>
+  <table>
+    <thead><tr><th>Number</th><th>Name</th><th>URL</th><th>Method</th><th></th></tr></thead>
+    <tbody id="pb-tbody"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+  </table>
+</div>
+
 <!-- Microphone -->
 <div class="card">
   <div class="hdr" style="margin-bottom:8px">
@@ -745,6 +775,168 @@ async function loadPhone() {
   }
 }
 
+// ── Phone Book ──────────────────────────────────────────────────────────────
+let pbEditId = null;
+
+function pbRow(e) {
+  const j = JSON.stringify(e).replace(/'/g, "&#39;");
+  const shortUrl = e.url.length > 40 ? e.url.substring(0, 37) + '...' : e.url;
+  return `<tr data-pb-id="${e.id}">
+    <td><strong>${e.number}</strong></td>
+    <td>${e.name}</td>
+    <td title="${e.url}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${shortUrl}</td>
+    <td>${e.method}</td>
+    <td style="white-space:nowrap">
+      <button class="bm" onclick='editPb(${j})'>Edit</button>
+      <button class="bw" onclick="testPb(${e.id})">Test</button>
+      <button class="bd" onclick="deletePb(${e.id})">Delete</button>
+    </td>
+  </tr>`;
+}
+
+function _syncPbActions() {
+  const has = !!document.querySelector('#pb-tbody tr[data-pb-id]');
+  document.getElementById('pb-delete-all').style.display = has ? '' : 'none';
+}
+
+function addPbRow(e) {
+  const tb = document.getElementById('pb-tbody');
+  if (!tb) return;
+  if (tb.rows.length === 1 && tb.rows[0].cells.length === 1) tb.innerHTML = '';
+  tb.insertAdjacentHTML('beforeend', pbRow(e));
+  _syncPbActions();
+}
+
+function updatePbRow(e) {
+  const row = document.querySelector(`#pb-tbody tr[data-pb-id="${e.id}"]`);
+  if (row) row.outerHTML = pbRow(e);
+  else addPbRow(e);
+  _syncPbActions();
+}
+
+function removePbRow(id) {
+  const row = document.querySelector(`#pb-tbody tr[data-pb-id="${id}"]`);
+  if (row) row.remove();
+  const tb = document.getElementById('pb-tbody');
+  if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="5" class="muted">No entries</td></tr>';
+  _syncPbActions();
+}
+
+function clearPbTable() {
+  const tb = document.getElementById('pb-tbody');
+  if (tb) tb.innerHTML = '<tr><td colspan="5" class="muted">No entries</td></tr>';
+  _syncPbActions();
+}
+
+async function loadPhoneBook() {
+  const data = await req('GET', '/phonebook');
+  const tb = document.getElementById('pb-tbody');
+  if (!tb) return;
+  if (!data || !data.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="muted">No entries</td></tr>';
+    _syncPbActions();
+    return;
+  }
+  tb.innerHTML = data.map(pbRow).join('');
+  _syncPbActions();
+}
+
+function pbAddHeaderRow(name, value) {
+  const container = document.getElementById('pb-headers');
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `<div class="field"><label>Header Name</label><input class="pb-hdr-name" placeholder="Authorization" style="width:150px" value="${name||''}"></div>
+    <div class="field"><label>Header Value</label><input class="pb-hdr-value" placeholder="Bearer token..." style="width:200px" value="${value||''}"></div>
+    <button class="bd" style="align-self:flex-end" onclick="this.parentElement.remove()">Remove</button>`;
+  container.appendChild(row);
+}
+
+function _getPbHeaders() {
+  const names = document.querySelectorAll('.pb-hdr-name');
+  const values = document.querySelectorAll('.pb-hdr-value');
+  const headers = [];
+  for (let i = 0; i < names.length; i++) {
+    const n = names[i].value.trim();
+    const v = values[i].value;
+    if (n) headers.push({name: n, value: v});
+  }
+  return headers;
+}
+
+function editPb(e) {
+  pbEditId = e.id;
+  document.getElementById('pb-number').value = e.number;
+  document.getElementById('pb-name').value = e.name;
+  document.getElementById('pb-url').value = e.url;
+  document.getElementById('pb-method').value = e.method;
+  document.getElementById('pb-req-body').value = e.body || '';
+  document.getElementById('pb-headers').innerHTML = '';
+  if (e.headers) e.headers.forEach(h => pbAddHeaderRow(h.name, h.value));
+  document.getElementById('pb-edit-banner').style.display = '';
+  document.getElementById('pb-edit-id').textContent = e.id;
+  document.getElementById('pb-submit').textContent = 'Update Entry';
+  document.getElementById('pb-cancel').style.display = '';
+  document.getElementById('pb-number').focus();
+}
+
+function cancelPbEdit() {
+  pbEditId = null;
+  document.getElementById('pb-edit-banner').style.display = 'none';
+  document.getElementById('pb-submit').textContent = 'Add Entry';
+  document.getElementById('pb-cancel').style.display = 'none';
+  document.getElementById('pb-number').value = '';
+  document.getElementById('pb-name').value = '';
+  document.getElementById('pb-url').value = '';
+  document.getElementById('pb-method').value = 'GET';
+  document.getElementById('pb-req-body').value = '';
+  document.getElementById('pb-headers').innerHTML = '';
+}
+
+async function submitPhoneBook() {
+  const number = document.getElementById('pb-number').value.trim();
+  const url = document.getElementById('pb-url').value.trim();
+  if (!number || !url) return;
+  const body = {
+    number,
+    name: document.getElementById('pb-name').value.trim(),
+    url,
+    method: document.getElementById('pb-method').value,
+    body: document.getElementById('pb-req-body').value,
+    headers: _getPbHeaders()
+  };
+  if (pbEditId !== null) {
+    await req('PUT', '/phonebook/' + pbEditId, body);
+    cancelPbEdit();
+  } else {
+    await req('POST', '/phonebook', body);
+    document.getElementById('pb-number').value = '';
+    document.getElementById('pb-name').value = '';
+    document.getElementById('pb-url').value = '';
+    document.getElementById('pb-req-body').value = '';
+    document.getElementById('pb-headers').innerHTML = '';
+  }
+}
+
+async function deletePb(id) {
+  await req('DELETE', '/phonebook/' + id);
+}
+
+async function testPb(id) {
+  const result = await req('POST', '/phonebook/test/' + id);
+  if (result) {
+    const btn = document.querySelector(`#pb-tbody tr[data-pb-id="${id}"] .bw`);
+    if (btn) {
+      btn.textContent = result.success ? 'OK!' : 'Fail';
+      setTimeout(() => { btn.textContent = 'Test'; }, 2000);
+    }
+  }
+}
+
+async function clearPhoneBook() {
+  if (!confirm('Delete all phone book entries?')) return;
+  await req('DELETE', '/phonebook');
+}
+
 async function loadDeviceIP() {
   try {
     const r = await fetch('/ip');
@@ -753,7 +945,7 @@ async function loadDeviceIP() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone(), loadPhoneState()]);
+  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone(), loadPhoneState(), loadPhoneBook()]);
 }
 
 function appendLog(level, msg, time, category) {
@@ -853,6 +1045,10 @@ function connectWS() {
       else if (msg.topic === 'phone/dialing') updateDialDialing();
       else if (msg.topic === 'phone/digit') updateDialDigit(msg.data);
       else if (msg.topic === 'phone/clear') updatePhoneClear();
+      else if (msg.topic === 'phonebook/created') addPbRow(msg.data);
+      else if (msg.topic === 'phonebook/updated') updatePbRow(msg.data);
+      else if (msg.topic === 'phonebook/deleted') removePbRow(msg.data.id);
+      else if (msg.topic === 'phonebook/cleared') clearPbTable();
     } catch(e) {}
   };
 }
