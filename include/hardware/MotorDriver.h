@@ -9,7 +9,6 @@ public:
   void begin();
   void activate();   // Enable motor oscillation
   void deactivate(); // Stop motor and disable driver
-  void update();     // Call every loop iteration to drive oscillation
   bool isActive() const;
 
 private:
@@ -17,7 +16,12 @@ private:
   uint8_t _in2;
   uint8_t _ena;
   unsigned long _halfPeriod;
-  bool _active;
-  bool _phase;             // false = direction 1, true = direction 2
-  unsigned long _lastToggle;
+  volatile bool _active;
+  volatile bool _phase;
+
+#ifdef ESP32
+  hw_timer_t* _timer;
+  static MotorDriver* _instance;
+  static void IRAM_ATTR onTimer();
+#endif
 };

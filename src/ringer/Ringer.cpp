@@ -74,5 +74,4 @@ void Ringer::update() {
     }
   }
 
-  _motor.update();
 }
