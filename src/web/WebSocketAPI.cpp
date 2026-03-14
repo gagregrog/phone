@@ -5,9 +5,12 @@
 #include <ESPAsyncWebServer.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
+#include <esp_heap_caps.h>
 #include <deque>
 #include <map>
 #include <string.h>
+
+static const size_t HEAP_LOW_WATERMARK = 16384;
 
 struct BinaryFrame { uint8_t* data; size_t len; };
 
@@ -28,7 +31,6 @@ void webSocketAPIBegin() {
     _ws.onEvent([](AsyncWebSocket*, AsyncWebSocketClient* client,
                    AwsEventType type, void*, uint8_t*, size_t) {
         if (type == WS_EVT_CONNECT) {
-            client->setCloseClientOnQueueFull(false);
             _clientIPs[client->id()] = client->remoteIP().toString();
             if (!_logBuffer.empty()) {
                 String batch = "{\"topic\":\"log/history\",\"data\":[";
@@ -66,6 +68,7 @@ void webSocketAPIBegin() {
         }
 
         if (_ws.count() == 0) return;
+        if (heap_caps_get_free_size(MALLOC_CAP_8BIT) < HEAP_LOW_WATERMARK) return;
         for (auto& client : _ws.getClients()) {
             if (client.status() == WS_CONNECTED && client.canSend()) {
                 client.text(msg);
