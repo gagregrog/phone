@@ -34,6 +34,16 @@ void phoneBookFillJson(JsonObject obj, const PhoneBookEntry& e, bool mask) {
             ho["value"] = h.value.c_str();
         }
     }
+
+    JsonArray exts = obj["extensions"].to<JsonArray>();
+    for (const auto& x : e.extensions) {
+        JsonObject xo = exts.add<JsonObject>();
+        xo["ext"]    = x.ext.c_str();
+        xo["name"]   = x.name.c_str();
+        xo["path"]   = x.path.c_str();
+        xo["method"] = x.method.c_str();
+        xo["body"]   = x.body.c_str();
+    }
 }
 
 void phoneBookParseJson(JsonObject obj, PhoneBookEntry& e, const PhoneBookEntry* mergeFrom) {
@@ -62,6 +72,20 @@ void phoneBookParseJson(JsonObject obj, PhoneBookEntry& e, const PhoneBookEntry*
                 }
             }
             e.headers.push_back(hdr);
+        }
+    }
+
+    e.extensions.clear();
+    JsonArray exts = obj["extensions"];
+    if (exts) {
+        for (JsonObject x : exts) {
+            PhoneBookExtension ext;
+            ext.ext    = (const char*)(x["ext"]    | "");
+            ext.name   = (const char*)(x["name"]   | "");
+            ext.path   = (const char*)(x["path"]   | "");
+            ext.method = (const char*)(x["method"] | "");
+            ext.body   = (const char*)(x["body"]   | "");
+            e.extensions.push_back(ext);
         }
     }
 }

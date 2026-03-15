@@ -7,12 +7,14 @@
 #include "hardware/DialManager.h"
 
 enum class PhoneState {
-    IDLE,       // On hook, ready for incoming calls
-    RINGING,    // Incoming call, bell ringing, on hook
-    OFF_HOOK,   // Handset lifted, no active call (dial tone would play)
-    DIALING,    // Digits being accumulated; timeout fires onDialComplete
-    CALL_OUT,   // Number dialed, awaiting answer (ring-back tone would play)
-    IN_CALL,    // Connected — answered an incoming ring
+    IDLE,                // On hook, ready for incoming calls
+    RINGING,             // Incoming call, bell ringing, on hook
+    OFF_HOOK,            // Handset lifted, no active call (dial tone would play)
+    DIALING,             // Digits being accumulated; timeout fires onDialComplete
+    CALL_OUT,            // Number dialed, awaiting answer (ring-back tone would play)
+    IN_CALL,             // Connected — answered an incoming ring
+    AWAITING_EXTENSION,  // Base number matched, waiting for extension digits
+    WRONG_NUMBER,        // Dialed number or extension not found
 };
 
 enum class RingResult {
@@ -39,6 +41,12 @@ public:
     // Transition CALL_OUT → IN_CALL (called externally when outbound call is answered).
     void callAnswered();
 
+    // Transition CALL_OUT → AWAITING_EXTENSION, clear dial buffer, start extension timeout.
+    void awaitExtension();
+
+    // Transition CALL_OUT or AWAITING_EXTENSION → WRONG_NUMBER.
+    void wrongNumber();
+
     PhoneState getState() const { return _state; }
     bool isRinging() const      { return _state == PhoneState::RINGING; }
 
@@ -46,8 +54,10 @@ public:
     void setOnHungUp(std::function<void()> cb)                { _onHungUp    = cb; }
     void setOnOffHook(std::function<void()> cb)               { _onOffHook   = cb; }
     void setOnDialComplete(std::function<void(const char*)> cb) { _onDialComplete = cb; }
+    void setOnExtensionDialComplete(std::function<void(const char*)> cb) { _onExtDialComplete = cb; }
 
     static constexpr unsigned long DIAL_TIMEOUT_MS = 3000;
+    static constexpr unsigned long EXT_TIMEOUT_MS  = 5000;
 
 private:
     void onHandsetChanged(bool offHook);
@@ -65,4 +75,5 @@ private:
     std::function<void()>             _onHungUp;
     std::function<void()>             _onOffHook;
     std::function<void(const char*)>  _onDialComplete;
+    std::function<void(const char*)>  _onExtDialComplete;
 };

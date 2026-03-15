@@ -43,6 +43,19 @@ void NVSPhoneBookStore::load(std::vector<PhoneBookEntry>& entries) {
                 e.headers.push_back(hdr);
             }
         }
+
+        JsonArray exts = obj["extensions"];
+        if (exts) {
+            for (JsonObject x : exts) {
+                PhoneBookExtension ext;
+                ext.ext    = (const char*)(x["ext"]    | "");
+                ext.name   = (const char*)(x["name"]   | "");
+                ext.path   = (const char*)(x["path"]   | "");
+                ext.method = (const char*)(x["method"] | "");
+                ext.body   = (const char*)(x["body"]   | "");
+                e.extensions.push_back(ext);
+            }
+        }
         entries.push_back(e);
     }
     logger.infof("NVSPhoneBookStore: loaded %u entry(ies)", (unsigned)entries.size());
@@ -65,6 +78,18 @@ void NVSPhoneBookStore::save(const std::vector<PhoneBookEntry>& entries) {
             JsonObject ho = hdrs.add<JsonObject>();
             ho["name"]  = h.name.c_str();
             ho["value"] = h.value.c_str();
+        }
+
+        if (!e.extensions.empty()) {
+            JsonArray exts = obj["extensions"].to<JsonArray>();
+            for (const auto& x : e.extensions) {
+                JsonObject xo = exts.add<JsonObject>();
+                xo["ext"]  = x.ext.c_str();
+                xo["name"] = x.name.c_str();
+                xo["path"] = x.path.c_str();
+                if (!x.method.empty()) xo["method"] = x.method.c_str();
+                if (!x.body.empty())   xo["body"]   = x.body.c_str();
+            }
         }
     }
 

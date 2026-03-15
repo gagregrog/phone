@@ -11,6 +11,14 @@ void PhoneBookManager::setOnNotFound(std::function<void(const char*)> cb) {
     _onNotFound = std::move(cb);
 }
 
+void PhoneBookManager::setOnCallWithExtensions(std::function<void(const PhoneBookEntry&)> cb) {
+    _onCallWithExtensions = std::move(cb);
+}
+
+void PhoneBookManager::setOnExtensionNotFound(std::function<void(uint32_t, const char*)> cb) {
+    _onExtensionNotFound = std::move(cb);
+}
+
 uint32_t PhoneBookManager::add(const PhoneBookEntry& entry) {
     PhoneBookEntry e = entry;
     e.id = _nextId++;
@@ -23,12 +31,13 @@ uint32_t PhoneBookManager::add(const PhoneBookEntry& entry) {
 bool PhoneBookManager::update(uint32_t id, const PhoneBookEntry& entry) {
     for (auto& e : _entries) {
         if (e.id == id) {
-            e.number  = entry.number;
-            e.name    = entry.name;
-            e.url     = entry.url;
-            e.method  = entry.method.empty() ? "GET" : entry.method;
-            e.body    = entry.body;
-            e.headers = entry.headers;
+            e.number     = entry.number;
+            e.name       = entry.name;
+            e.url        = entry.url;
+            e.method     = entry.method.empty() ? "GET" : entry.method;
+            e.body       = entry.body;
+            e.headers    = entry.headers;
+            e.extensions = entry.extensions;
             save();
             return true;
         }
@@ -82,10 +91,45 @@ void PhoneBookManager::init() {
 void PhoneBookManager::dial(const char* number) {
     const PhoneBookEntry* e = findByNumber(number);
     if (e) {
-        if (_onCall) _onCall(*e);
+        if (!e->extensions.empty()) {
+            if (_onCallWithExtensions) _onCallWithExtensions(*e);
+        } else {
+            if (_onCall) _onCall(*e);
+        }
     } else {
         if (_onNotFound) _onNotFound(number);
     }
+}
+
+void PhoneBookManager::dialExtension(uint32_t entryId, const char* ext) {
+    const PhoneBookEntry* base = findById(entryId);
+    if (!base) {
+        if (_onExtensionNotFound) _onExtensionNotFound(entryId, ext);
+        return;
+    }
+
+    for (const auto& x : base->extensions) {
+        if (x.ext == ext) {
+            // Build a merged entry
+            PhoneBookEntry merged;
+            merged.id      = base->id;
+            merged.number  = base->number;
+            merged.name    = x.name.empty() ? base->name : x.name;
+            merged.url     = base->url + x.path;
+            merged.method  = x.method.empty() ? base->method : x.method;
+            merged.body    = x.body.empty() ? base->body : x.body;
+            merged.headers = base->headers;
+            if (_onCall) _onCall(merged);
+            return;
+        }
+    }
+
+    if (_onExtensionNotFound) _onExtensionNotFound(entryId, ext);
+}
+
+bool PhoneBookManager::hasExtensions(uint32_t id) const {
+    const PhoneBookEntry* e = findById(id);
+    return e && !e->extensions.empty();
 }
 
 void PhoneBookManager::save() {

@@ -53,10 +53,13 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
     // We check the exact path and handle test routes inline.
     server->on("/phonebook", HTTP_POST,
         [](AsyncWebServerRequest* req) {
-            // POST /phonebook/test/<id> — test-fire an entry
+            // POST /phonebook/test/<id> or /phonebook/test/<id>/<ext>
             String url = req->url();
             if (url.startsWith("/phonebook/test/")) {
-                String idStr = url.substring(16);
+                String rest = url.substring(16);
+                int slash = rest.indexOf('/');
+                String idStr = (slash >= 0) ? rest.substring(0, slash) : rest;
+                String extStr = (slash >= 0) ? rest.substring(slash + 1) : "";
                 uint32_t id = (uint32_t)idStr.toInt();
                 if (id == 0) {
                     req->send(400, "application/json", "{\"error\":\"invalid id\"}");
@@ -67,9 +70,33 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
                     req->send(404, "application/json", "{\"error\":\"not found\"}");
                     return;
                 }
-                logger.apif("[%s] POST /phonebook/test/%u",
-                             req->client()->remoteIP().toString().c_str(), (unsigned)id);
-                int httpCode = phoneBookCallerExec(*entry);
+
+                PhoneBookEntry testEntry = *entry;
+                if (extStr.length() > 0) {
+                    // Test a specific extension
+                    bool found = false;
+                    for (const auto& x : entry->extensions) {
+                        if (x.ext == extStr.c_str()) {
+                            testEntry.url = entry->url + x.path;
+                            testEntry.method = x.method.empty() ? entry->method : x.method;
+                            testEntry.body = x.body.empty() ? entry->body : x.body;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        req->send(404, "application/json", "{\"error\":\"extension not found\"}");
+                        return;
+                    }
+                    logger.apif("[%s] POST /phonebook/test/%u/%s",
+                                 req->client()->remoteIP().toString().c_str(),
+                                 (unsigned)id, extStr.c_str());
+                } else {
+                    logger.apif("[%s] POST /phonebook/test/%u",
+                                 req->client()->remoteIP().toString().c_str(), (unsigned)id);
+                }
+
+                int httpCode = phoneBookCallerExec(testEntry);
                 JsonDocument doc;
                 doc["id"] = id;
                 doc["httpCode"] = httpCode;

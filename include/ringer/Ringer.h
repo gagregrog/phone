@@ -8,7 +8,7 @@ class Ringer {
 public:
   explicit Ringer(MotorDriver& motor);
 
-  bool ring(const RingPattern& pattern, uint16_t cycles = 0);  // Returns false if suppressed by guard
+  bool ring(const RingPattern& pattern, uint16_t cycles = 0, bool force = false);  // Returns false if suppressed by guard
   void ringStop();                        // Stop all ringing immediately
   void update();                          // Call every loop iteration
   bool isRinging() const;

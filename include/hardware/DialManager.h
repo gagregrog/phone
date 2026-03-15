@@ -18,6 +18,7 @@ public:
 
     const char* number() const { return _number.c_str(); }
     bool isOffHook() const     { return _offHook; }
+    void clearNumber()         { _number.clear(); }
 
     void addOnDialStart(DialStartCallback cb) { _onDialStart.push_back(cb); }
     void addOnDigit(DigitCallback cb)         { _onDigit.push_back(cb); }

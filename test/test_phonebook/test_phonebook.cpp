@@ -286,6 +286,146 @@ void test_entry_with_headers(void) {
 }
 
 // ---------------------------------------------------------------------------
+// extensions
+// ---------------------------------------------------------------------------
+
+static PhoneBookEntry makeEntryWithExtensions(const char* number, const char* name,
+                                                const char* url) {
+    PhoneBookEntry e = makeEntry(number, name, url, "POST");
+    e.body = "{\"on\":true}";
+    PhoneBookExtension x1;
+    x1.ext = "1"; x1.name = "On"; x1.path = "/on";
+    PhoneBookExtension x2;
+    x2.ext = "2"; x2.name = "Off"; x2.path = "/off"; x2.method = "PUT"; x2.body = "{\"off\":true}";
+    e.extensions.push_back(x1);
+    e.extensions.push_back(x2);
+    return e;
+}
+
+void test_dial_with_extensions_fires_on_call_with_extensions(void) {
+    PhoneBookEntry e = makeEntryWithExtensions("411", "WLED", "http://wled.local");
+    mgr->add(e);
+
+    bool fired = false;
+    mgr->setOnCallWithExtensions([&](const PhoneBookEntry&) {
+        fired = true;
+    });
+    mgr->setOnCall([](const PhoneBookEntry&) {
+        TEST_FAIL_MESSAGE("onCall should not fire for entries with extensions");
+    });
+
+    mgr->dial("411");
+    TEST_ASSERT_TRUE(fired);
+}
+
+void test_dial_without_extensions_fires_on_call(void) {
+    PhoneBookEntry e = makeEntry("411", "Info", "http://info.com");
+    mgr->add(e);
+
+    bool fired = false;
+    mgr->setOnCall([&](const PhoneBookEntry&) {
+        fired = true;
+    });
+
+    mgr->dial("411");
+    TEST_ASSERT_TRUE(fired);
+}
+
+void test_dial_extension_found_fires_on_call_with_merged_entry(void) {
+    PhoneBookEntry e = makeEntryWithExtensions("411", "WLED", "http://wled.local");
+    uint32_t id = mgr->add(e);
+
+    std::string calledUrl;
+    std::string calledMethod;
+    std::string calledBody;
+    mgr->setOnCall([&](const PhoneBookEntry& entry) {
+        calledUrl    = entry.url;
+        calledMethod = entry.method;
+        calledBody   = entry.body;
+    });
+
+    mgr->dialExtension(id, "1");
+    TEST_ASSERT_EQUAL_STRING("http://wled.local/on", calledUrl.c_str());
+    TEST_ASSERT_EQUAL_STRING("POST", calledMethod.c_str());   // fallback to base
+    TEST_ASSERT_EQUAL_STRING("{\"on\":true}", calledBody.c_str()); // fallback to base
+}
+
+void test_dial_extension_method_override(void) {
+    PhoneBookEntry e = makeEntryWithExtensions("411", "WLED", "http://wled.local");
+    uint32_t id = mgr->add(e);
+
+    std::string calledMethod;
+    std::string calledBody;
+    mgr->setOnCall([&](const PhoneBookEntry& entry) {
+        calledMethod = entry.method;
+        calledBody   = entry.body;
+    });
+
+    mgr->dialExtension(id, "2");
+    TEST_ASSERT_EQUAL_STRING("PUT", calledMethod.c_str());
+    TEST_ASSERT_EQUAL_STRING("{\"off\":true}", calledBody.c_str());
+}
+
+void test_dial_extension_not_found_fires_callback(void) {
+    PhoneBookEntry e = makeEntryWithExtensions("411", "WLED", "http://wled.local");
+    uint32_t id = mgr->add(e);
+
+    bool notFound = false;
+    mgr->setOnExtensionNotFound([&](uint32_t, const char*) {
+        notFound = true;
+    });
+
+    mgr->dialExtension(id, "99");
+    TEST_ASSERT_TRUE(notFound);
+}
+
+void test_dial_extension_invalid_entry_id(void) {
+    bool notFound = false;
+    mgr->setOnExtensionNotFound([&](uint32_t, const char*) {
+        notFound = true;
+    });
+
+    mgr->dialExtension(999, "1");
+    TEST_ASSERT_TRUE(notFound);
+}
+
+void test_has_extensions(void) {
+    PhoneBookEntry e1 = makeEntryWithExtensions("411", "WLED", "http://wled.local");
+    PhoneBookEntry e2 = makeEntry("911", "Test", "http://test.com");
+    uint32_t id1 = mgr->add(e1);
+    uint32_t id2 = mgr->add(e2);
+    TEST_ASSERT_TRUE(mgr->hasExtensions(id1));
+    TEST_ASSERT_FALSE(mgr->hasExtensions(id2));
+}
+
+void test_update_copies_extensions(void) {
+    PhoneBookEntry e = makeEntry("411", "WLED", "http://wled.local");
+    uint32_t id = mgr->add(e);
+    TEST_ASSERT_FALSE(mgr->hasExtensions(id));
+
+    PhoneBookEntry upd = makeEntryWithExtensions("411", "WLED", "http://wled.local");
+    mgr->update(id, upd);
+    TEST_ASSERT_TRUE(mgr->hasExtensions(id));
+    TEST_ASSERT_EQUAL(2, (int)mgr->findById(id)->extensions.size());
+}
+
+void test_url_merging_concatenation(void) {
+    PhoneBookEntry e = makeEntry("411", "WLED", "http://wled.local/json");
+    PhoneBookExtension x;
+    x.ext = "1"; x.name = "State"; x.path = "/state";
+    e.extensions.push_back(x);
+    uint32_t id = mgr->add(e);
+
+    std::string calledUrl;
+    mgr->setOnCall([&](const PhoneBookEntry& entry) {
+        calledUrl = entry.url;
+    });
+
+    mgr->dialExtension(id, "1");
+    TEST_ASSERT_EQUAL_STRING("http://wled.local/json/state", calledUrl.c_str());
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -314,6 +454,16 @@ int main(int argc, char** argv) {
     RUN_TEST(test_dial_fires_not_found);
     RUN_TEST(test_dial_no_callback_no_crash);
     RUN_TEST(test_entry_with_headers);
+
+    RUN_TEST(test_dial_with_extensions_fires_on_call_with_extensions);
+    RUN_TEST(test_dial_without_extensions_fires_on_call);
+    RUN_TEST(test_dial_extension_found_fires_on_call_with_merged_entry);
+    RUN_TEST(test_dial_extension_method_override);
+    RUN_TEST(test_dial_extension_not_found_fires_callback);
+    RUN_TEST(test_dial_extension_invalid_entry_id);
+    RUN_TEST(test_has_extensions);
+    RUN_TEST(test_update_copies_extensions);
+    RUN_TEST(test_url_merging_concatenation);
 
     return UNITY_END();
 }

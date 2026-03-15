@@ -18,9 +18,13 @@ public:
 
     void setOnCall(std::function<void(const PhoneBookEntry&)> cb);
     void setOnNotFound(std::function<void(const char*)> cb);
+    void setOnCallWithExtensions(std::function<void(const PhoneBookEntry&)> cb);
+    void setOnExtensionNotFound(std::function<void(uint32_t, const char*)> cb);
 
     void init();                  // load from store
     void dial(const char* number); // lookup + fire callback
+    void dialExtension(uint32_t entryId, const char* ext); // lookup extension, merge, fire callback
+    bool hasExtensions(uint32_t id) const;
 
 private:
     PhoneBookStore& _store;
@@ -28,6 +32,8 @@ private:
     uint32_t _nextId;
     std::function<void(const PhoneBookEntry&)> _onCall;
     std::function<void(const char*)> _onNotFound;
+    std::function<void(const PhoneBookEntry&)> _onCallWithExtensions;
+    std::function<void(uint32_t, const char*)> _onExtensionNotFound;
 
     void save();
 };

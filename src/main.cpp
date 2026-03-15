@@ -84,7 +84,7 @@ void setup() {
     handsetEventsBegin(handset);
     dialManagerEventsBegin(dialMgr);
     phoneCtrl.begin();   // subscribes to ring/started, ring/stopped; adds handset+dial callbacks
-    phoneBookCallerBegin(phoneBookMgr, phoneCtrl);
+    phoneBookCallerBegin(phoneBookMgr, phoneCtrl, ringer);
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);

@@ -714,3 +714,52 @@ Response:
 ```
 192.168.1.100
 ```
+
+### Phone Book
+
+Maps dialed numbers to outbound HTTP requests for home automation. Each entry can optionally have **extensions** — sub-numbers that share the base entry's URL, headers, and auth but target different paths/actions.
+
+**Extension flow:** User dials base number → hears ack chirp → dials extension number → HTTP fires with merged URL (`base.url + ext.path`). Extension method/body override the base if non-empty; headers always come from the base.
+
+#### `GET /phonebook`
+
+Returns all entries with masked sensitive headers.
+
+#### `POST /phonebook`
+
+Create a new entry. Extensions are an optional array:
+
+```json
+{
+  "number": "411",
+  "name": "WLED",
+  "url": "http://192.168.1.50/json",
+  "method": "POST",
+  "body": "{}",
+  "headers": [],
+  "extensions": [
+    {"ext": "1", "name": "On", "path": "/state", "method": "POST", "body": "{\"on\":true}"},
+    {"ext": "2", "name": "Off", "path": "/state", "body": "{\"on\":false}"}
+  ]
+}
+```
+
+#### `PUT /phonebook/{id}`
+
+Update an existing entry (including extensions).
+
+#### `DELETE /phonebook/{id}`
+
+Delete a single entry.
+
+#### `DELETE /phonebook`
+
+Delete all entries.
+
+#### `POST /phonebook/test/{id}`
+
+Test-fire an entry's base HTTP request.
+
+#### `POST /phonebook/test/{id}/{ext}`
+
+Test-fire a specific extension's merged HTTP request.

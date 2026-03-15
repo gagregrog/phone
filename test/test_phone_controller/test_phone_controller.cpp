@@ -379,6 +379,134 @@ void test_hang_up_from_call_out_to_idle(void) {
     TEST_ASSERT_EQUAL(PhoneState::IDLE, phone->getState());
 }
 
+// --- Helper to reach CALL_OUT state ---
+static void goToCallOut() {
+    goOffHook();
+    dialMgr->tick();
+    startDialing();
+    _mock_millis += 1;
+    phone->tick(_mock_millis);
+    _mock_millis += PhoneController::DIAL_TIMEOUT_MS + 1;
+    phone->tick(_mock_millis);
+}
+
+// --- AWAITING_EXTENSION ---
+
+void test_await_extension_transitions_from_call_out(void) {
+    goToCallOut();
+    phone->awaitExtension();
+    TEST_ASSERT_EQUAL(PhoneState::AWAITING_EXTENSION, phone->getState());
+}
+
+void test_await_extension_noop_from_idle(void) {
+    phone->awaitExtension();
+    TEST_ASSERT_EQUAL(PhoneState::IDLE, phone->getState());
+}
+
+void test_dial_activity_in_awaiting_extension_resets_timeout(void) {
+    goToCallOut();
+    phone->awaitExtension();
+
+    // Simulate time passing and dial activity
+    _mock_millis += 1;
+    phone->tick(_mock_millis);  // captures _lastDialActivityMs
+
+    // Start dialing while in AWAITING_EXTENSION
+    startDialing();
+    _mock_millis += 4000;  // less than EXT_TIMEOUT from original, but > from activity
+    phone->tick(_mock_millis);  // should record activity, not fire timeout
+
+    // Should still be AWAITING_EXTENSION because activity reset the timer
+    TEST_ASSERT_EQUAL(PhoneState::AWAITING_EXTENSION, phone->getState());
+}
+
+void test_extension_timeout_fires_callback(void) {
+    goToCallOut();
+    phone->awaitExtension();
+
+    bool fired = false;
+    static char capturedExt[16] = {};
+    phone->setOnExtensionDialComplete([&fired](const char* ext) {
+        fired = true;
+        strncpy(capturedExt, ext, sizeof(capturedExt) - 1);
+    });
+
+    _mock_millis += 1;
+    phone->tick(_mock_millis);  // captures _lastDialActivityMs
+    _mock_millis += PhoneController::EXT_TIMEOUT_MS + 1;
+    phone->tick(_mock_millis);
+
+    TEST_ASSERT_TRUE(fired);
+}
+
+void test_extension_timeout_empty_ext(void) {
+    goToCallOut();
+
+    static char capturedExt[16];
+    memset(capturedExt, 'X', sizeof(capturedExt));
+    phone->setOnExtensionDialComplete([](const char* ext) {
+        strncpy(capturedExt, ext, sizeof(capturedExt) - 1);
+        capturedExt[sizeof(capturedExt) - 1] = '\0';
+    });
+
+    phone->awaitExtension();
+
+    _mock_millis += 1;
+    phone->tick(_mock_millis);
+    _mock_millis += PhoneController::EXT_TIMEOUT_MS + 1;
+    phone->tick(_mock_millis);
+
+    TEST_ASSERT_EQUAL_STRING("", capturedExt);
+}
+
+// --- WRONG_NUMBER ---
+
+void test_wrong_number_from_call_out(void) {
+    goToCallOut();
+    phone->wrongNumber();
+    TEST_ASSERT_EQUAL(PhoneState::WRONG_NUMBER, phone->getState());
+}
+
+void test_wrong_number_from_awaiting_extension(void) {
+    goToCallOut();
+    phone->awaitExtension();
+    phone->wrongNumber();
+    TEST_ASSERT_EQUAL(PhoneState::WRONG_NUMBER, phone->getState());
+}
+
+void test_wrong_number_noop_from_idle(void) {
+    phone->wrongNumber();
+    TEST_ASSERT_EQUAL(PhoneState::IDLE, phone->getState());
+}
+
+void test_hang_up_from_awaiting_extension_to_idle(void) {
+    goToCallOut();
+    phone->awaitExtension();
+    goOnHook();
+    TEST_ASSERT_EQUAL(PhoneState::IDLE, phone->getState());
+}
+
+void test_hang_up_from_wrong_number_to_idle(void) {
+    goToCallOut();
+    phone->wrongNumber();
+    goOnHook();
+    TEST_ASSERT_EQUAL(PhoneState::IDLE, phone->getState());
+}
+
+void test_ring_in_awaiting_extension_is_busy(void) {
+    goToCallOut();
+    phone->awaitExtension();
+    RingResult r = phone->ring(PATTERN_US);
+    TEST_ASSERT_EQUAL(RingResult::BUSY, r);
+}
+
+void test_ring_in_wrong_number_is_busy(void) {
+    goToCallOut();
+    phone->wrongNumber();
+    RingResult r = phone->ring(PATTERN_US);
+    TEST_ASSERT_EQUAL(RingResult::BUSY, r);
+}
+
 int main(int argc, char** argv) {
     UNITY_BEGIN();
 
@@ -417,6 +545,19 @@ int main(int argc, char** argv) {
 
     RUN_TEST(test_hang_up_from_dialing_to_idle);
     RUN_TEST(test_hang_up_from_call_out_to_idle);
+
+    RUN_TEST(test_await_extension_transitions_from_call_out);
+    RUN_TEST(test_await_extension_noop_from_idle);
+    RUN_TEST(test_dial_activity_in_awaiting_extension_resets_timeout);
+    RUN_TEST(test_extension_timeout_fires_callback);
+    RUN_TEST(test_extension_timeout_empty_ext);
+    RUN_TEST(test_wrong_number_from_call_out);
+    RUN_TEST(test_wrong_number_from_awaiting_extension);
+    RUN_TEST(test_wrong_number_noop_from_idle);
+    RUN_TEST(test_hang_up_from_awaiting_extension_to_idle);
+    RUN_TEST(test_hang_up_from_wrong_number_to_idle);
+    RUN_TEST(test_ring_in_awaiting_extension_is_busy);
+    RUN_TEST(test_ring_in_wrong_number_is_busy);
 
     RUN_TEST(test_phone_state_published_on_ring);
     RUN_TEST(test_phone_state_published_on_ring_stop);

@@ -6,8 +6,8 @@ Ringer::Ringer(MotorDriver& motor)
       _pattern(nullptr), _phaseIndex(0), _cyclesRemaining(0),
       _onStop(nullptr), _onStart(nullptr), _onBlocked(nullptr), _guard(nullptr) {}
 
-bool Ringer::ring(const RingPattern& pattern, uint16_t cycles) {
-  if (_guard && !_guard()) {
+bool Ringer::ring(const RingPattern& pattern, uint16_t cycles, bool force) {
+  if (!force && _guard && !_guard()) {
     logger.phonef("Ring suppressed: %s", pattern.name);
     if (_onBlocked) _onBlocked(pattern.name);
     return false;

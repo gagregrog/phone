@@ -145,7 +145,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   </div>
   <table>
     <thead><tr><th>ID</th><th>Remaining</th><th>Total</th><th>Pattern</th><th></th></tr></thead>
-    <tbody id="t-body"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+    <tbody id="t-body"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
   </table>
 </div>
 
@@ -203,14 +203,19 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
   <div class="row">
     <button class="bm" onclick="pbAddHeaderRow()">+ Header</button>
   </div>
+  <div style="margin:8px 0 4px;font-size:.82rem;color:#9ca3af">Extensions</div>
+  <div id="pb-extensions"></div>
+  <div class="row">
+    <button class="bm" onclick="pbAddExtRow()">+ Extension</button>
+  </div>
   <div class="row">
     <button class="bs" id="pb-submit" onclick="submitPhoneBook()">Add Entry</button>
     <button class="bm" id="pb-cancel" style="display:none" onclick="cancelPbEdit()">Cancel Edit</button>
     <button id="pb-delete-all" class="bd" style="display:none" onclick="clearPhoneBook()">Delete All</button>
   </div>
   <table>
-    <thead><tr><th>Number</th><th>Name</th><th>URL</th><th>Method</th><th></th></tr></thead>
-    <tbody id="pb-tbody"><tr><td colspan="5" class="muted">Loading...</td></tr></tbody>
+    <thead><tr><th>Number</th><th>Name</th><th>URL</th><th>Method</th><th>Ext</th><th></th></tr></thead>
+    <tbody id="pb-tbody"><tr><td colspan="6" class="muted">Loading...</td></tr></tbody>
   </table>
 </div>
 
@@ -744,20 +749,41 @@ function updatePhoneClear() {
 // ── Phone Book ──────────────────────────────────────────────────────────────
 let pbEditId = null;
 
+function _escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
+
 function pbRow(e) {
-  const j = JSON.stringify(e).replace(/'/g, "&#39;");
+  const j = _escAttr(JSON.stringify(e));
   const shortUrl = e.url.length > 40 ? e.url.substring(0, 37) + '...' : e.url;
-  return `<tr data-pb-id="${e.id}">
+  const hasExt = e.extensions && e.extensions.length;
+  const extCount = hasExt ? `<span class="badge bon">${e.extensions.length}</span>` : '';
+  const testBtn = hasExt ? '' : `<button class="bp" onclick="testPb(${e.id})">Trigger</button>`;
+  let html = `<tr data-pb-id="${e.id}">
     <td><strong>${e.number}</strong></td>
     <td>${e.name}</td>
-    <td title="${e.url}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${shortUrl}</td>
+    <td title="${_escAttr(e.url)}" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${shortUrl}</td>
     <td>${e.method}</td>
+    <td>${extCount}</td>
     <td style="white-space:nowrap">
       <button class="bm" onclick='editPb(${j})'>Edit</button>
-      <button class="bw" onclick="testPb(${e.id})">Test</button>
+      ${testBtn}
       <button class="bd" onclick="deletePb(${e.id})">Delete</button>
     </td>
   </tr>`;
+  if (hasExt) {
+    for (const x of e.extensions) {
+      const extMethod = x.method || e.method;
+      const extPath = x.path || '';
+      html += `<tr data-pb-ext-of="${e.id}" style="color:#9ca3af;font-size:.78rem">
+        <td style="padding-left:24px">ext ${x.ext}</td>
+        <td>${x.name}</td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${extPath}</td>
+        <td>${extMethod}</td>
+        <td></td>
+        <td><button class="bp" onclick="testPbExt(${e.id},'${x.ext}')">Trigger</button></td>
+      </tr>`;
+    }
+  }
+  return html;
 }
 
 function _syncPbActions() {
@@ -773,24 +799,35 @@ function addPbRow(e) {
   _syncPbActions();
 }
 
+function _removeExtRows(id) {
+  document.querySelectorAll(`#pb-tbody tr[data-pb-ext-of="${id}"]`).forEach(r => r.remove());
+}
+
 function updatePbRow(e) {
+  _removeExtRows(e.id);
   const row = document.querySelector(`#pb-tbody tr[data-pb-id="${e.id}"]`);
-  if (row) row.outerHTML = pbRow(e);
-  else addPbRow(e);
+  if (row) {
+    row.insertAdjacentHTML('afterend', pbRow(e));
+    row.remove();
+  } else {
+    addPbRow(e);
+    return;
+  }
   _syncPbActions();
 }
 
 function removePbRow(id) {
+  _removeExtRows(id);
   const row = document.querySelector(`#pb-tbody tr[data-pb-id="${id}"]`);
   if (row) row.remove();
   const tb = document.getElementById('pb-tbody');
-  if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="5" class="muted">No entries</td></tr>';
+  if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="6" class="muted">No entries</td></tr>';
   _syncPbActions();
 }
 
 function clearPbTable() {
   const tb = document.getElementById('pb-tbody');
-  if (tb) tb.innerHTML = '<tr><td colspan="5" class="muted">No entries</td></tr>';
+  if (tb) tb.innerHTML = '<tr><td colspan="6" class="muted">No entries</td></tr>';
   _syncPbActions();
 }
 
@@ -798,7 +835,7 @@ function _applyPhoneBook(data) {
   const tb = document.getElementById('pb-tbody');
   if (!tb) return;
   if (!data || !data.length) {
-    tb.innerHTML = '<tr><td colspan="5" class="muted">No entries</td></tr>';
+    tb.innerHTML = '<tr><td colspan="6" class="muted">No entries</td></tr>';
     _syncPbActions();
     return;
   }
@@ -814,6 +851,43 @@ function pbAddHeaderRow(name, value) {
     <div class="field"><label>Header Value</label><input class="pb-hdr-value" placeholder="Bearer token..." style="width:200px" value="${value||''}"></div>
     <button class="bd" style="align-self:flex-end" onclick="this.parentElement.remove()">Remove</button>`;
   container.appendChild(row);
+}
+
+function pbAddExtRow(ext, name, path, method, body) {
+  const container = document.getElementById('pb-extensions');
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.innerHTML = `<div class="field"><label>Ext #</label><input class="pb-ext-num" placeholder="1" style="width:50px"></div>
+    <div class="field"><label>Name</label><input class="pb-ext-name" placeholder="On" style="width:80px"></div>
+    <div class="field"><label>Path</label><input class="pb-ext-path" placeholder="/on" style="width:120px"></div>
+    <div class="field"><label>Method</label>
+      <select class="pb-ext-method"><option value="">(base)</option><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+    </div>
+    <div class="field"><label>Body</label><input class="pb-ext-body" placeholder="" style="width:120px"></div>
+    <button class="bd" style="align-self:flex-end" onclick="this.parentElement.remove()">Remove</button>`;
+  row.querySelector('.pb-ext-num').value = ext || '';
+  row.querySelector('.pb-ext-name').value = name || '';
+  row.querySelector('.pb-ext-path').value = path || '';
+  row.querySelector('.pb-ext-method').value = method || '';
+  row.querySelector('.pb-ext-body').value = body || '';
+  container.appendChild(row);
+}
+
+function _getPbExtensions() {
+  const rows = document.querySelectorAll('#pb-extensions .row');
+  const extensions = [];
+  for (const row of rows) {
+    const ext = row.querySelector('.pb-ext-num').value.trim();
+    if (!ext) continue;
+    extensions.push({
+      ext,
+      name: row.querySelector('.pb-ext-name').value.trim(),
+      path: row.querySelector('.pb-ext-path').value,
+      method: row.querySelector('.pb-ext-method').value.trim(),
+      body: row.querySelector('.pb-ext-body').value
+    });
+  }
+  return extensions;
 }
 
 function _getPbHeaders() {
@@ -837,6 +911,8 @@ function editPb(e) {
   document.getElementById('pb-req-body').value = e.body || '';
   document.getElementById('pb-headers').innerHTML = '';
   if (e.headers) e.headers.forEach(h => pbAddHeaderRow(h.name, h.value));
+  document.getElementById('pb-extensions').innerHTML = '';
+  if (e.extensions) e.extensions.forEach(x => pbAddExtRow(x.ext, x.name, x.path, x.method, x.body));
   document.getElementById('pb-edit-banner').style.display = '';
   document.getElementById('pb-edit-id').textContent = e.id;
   document.getElementById('pb-submit').textContent = 'Update Entry';
@@ -855,6 +931,7 @@ function cancelPbEdit() {
   document.getElementById('pb-method').value = 'GET';
   document.getElementById('pb-req-body').value = '';
   document.getElementById('pb-headers').innerHTML = '';
+  document.getElementById('pb-extensions').innerHTML = '';
 }
 
 async function submitPhoneBook() {
@@ -867,7 +944,8 @@ async function submitPhoneBook() {
     url,
     method: document.getElementById('pb-method').value,
     body: document.getElementById('pb-req-body').value,
-    headers: _getPbHeaders()
+    headers: _getPbHeaders(),
+    extensions: _getPbExtensions()
   };
   if (pbEditId !== null) {
     await req('PUT', '/phonebook/' + pbEditId, body);
@@ -879,6 +957,7 @@ async function submitPhoneBook() {
     document.getElementById('pb-url').value = '';
     document.getElementById('pb-req-body').value = '';
     document.getElementById('pb-headers').innerHTML = '';
+    document.getElementById('pb-extensions').innerHTML = '';
   }
 }
 
@@ -889,10 +968,28 @@ async function deletePb(id) {
 async function testPb(id) {
   const result = await req('POST', '/phonebook/test/' + id);
   if (result) {
-    const btn = document.querySelector(`#pb-tbody tr[data-pb-id="${id}"] .bw`);
+    const btn = document.querySelector(`#pb-tbody tr[data-pb-id="${id}"] .bp`);
     if (btn) {
       btn.textContent = result.success ? 'OK!' : 'Fail';
-      setTimeout(() => { btn.textContent = 'Test'; }, 2000);
+      setTimeout(() => { btn.textContent = 'Trigger'; }, 2000);
+    }
+  }
+}
+
+async function testPbExt(id, ext) {
+  const result = await req('POST', '/phonebook/test/' + id + '/' + ext);
+  if (result) {
+    const rows = document.querySelectorAll(`#pb-tbody tr[data-pb-ext-of="${id}"]`);
+    for (const row of rows) {
+      const td = row.querySelector('td');
+      if (td && td.textContent.trim() === 'ext ' + ext) {
+        const btn = row.querySelector('.bp');
+        if (btn) {
+          btn.textContent = result.success ? 'OK!' : 'Fail';
+          setTimeout(() => { btn.textContent = 'Trigger'; }, 2000);
+        }
+        break;
+      }
     }
   }
 }

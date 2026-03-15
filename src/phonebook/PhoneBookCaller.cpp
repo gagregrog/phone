@@ -1,6 +1,8 @@
 #include "phonebook/PhoneBookCaller.h"
 #include "phonebook/PhoneBookJSON.h"
 #include "phone/PhoneController.h"
+#include "ringer/Ringer.h"
+#include "ringer/RingPattern.h"
 #include "web/Events.h"
 #include "system/Logger.h"
 #include "phonebook/UrlResolver.h"
@@ -9,6 +11,7 @@
 #include <ESPmDNS.h>
 
 static const int HTTP_TIMEOUT_MS = 3000;
+static uint32_t _pendingEntryId = 0;
 
 static std::string mdnsLookup(const std::string& name) {
     IPAddress ip = MDNS.queryHost(name.c_str());
@@ -84,7 +87,7 @@ int phoneBookCallerExec(const PhoneBookEntry& entry) {
     return httpCode;
 }
 
-void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl) {
+void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Ringer& ringer) {
     phoneCtrl.setOnDialComplete([&mgr](const char* number) {
         mgr.dial(number);
     });
@@ -93,12 +96,34 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl) {
         phoneBookCallerExec(entry);
     });
 
-    mgr.setOnNotFound([](const char* number) {
+    mgr.setOnNotFound([&phoneCtrl](const char* number) {
         logger.infof("PhoneBookCaller: no entry for number '%s'", number);
+        phoneCtrl.wrongNumber();
         JsonDocument doc;
         doc["number"] = number;
         String payload;
         serializeJson(doc, payload);
         eventsPublish("phonebook/not-found", payload.c_str());
+    });
+
+    mgr.setOnCallWithExtensions([&phoneCtrl, &ringer](const PhoneBookEntry& entry) {
+        _pendingEntryId = entry.id;
+        ringer.ring(PATTERN_CHIRP, 1, true);
+        phoneCtrl.awaitExtension();
+    });
+
+    phoneCtrl.setOnExtensionDialComplete([&mgr, &phoneCtrl](const char* ext) {
+        if (!ext || ext[0] == '\0') {
+            phoneCtrl.wrongNumber();
+        } else {
+            mgr.dialExtension(_pendingEntryId, ext);
+        }
+    });
+
+    mgr.setOnExtensionNotFound([&phoneCtrl](uint32_t entryId, const char* ext) {
+        phoneCtrl.wrongNumber();
+        char buf[64];
+        snprintf(buf, sizeof(buf), "{\"entryId\":%u,\"ext\":\"%s\"}", (unsigned)entryId, ext);
+        eventsPublish("phonebook/extension-not-found", buf);
     });
 }

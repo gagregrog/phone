@@ -16,13 +16,15 @@ static void publishPhoneState(const char* state, const char* number = nullptr) {
 
 static const char* stateName(PhoneState s) {
     switch (s) {
-        case PhoneState::IDLE:     return "IDLE";
-        case PhoneState::RINGING:  return "RINGING";
-        case PhoneState::OFF_HOOK: return "OFF_HOOK";
-        case PhoneState::DIALING:  return "DIALING";
-        case PhoneState::CALL_OUT: return "CALL_OUT";
-        case PhoneState::IN_CALL:  return "IN_CALL";
-        default:                   return "UNKNOWN";
+        case PhoneState::IDLE:                return "IDLE";
+        case PhoneState::RINGING:             return "RINGING";
+        case PhoneState::OFF_HOOK:            return "OFF_HOOK";
+        case PhoneState::DIALING:             return "DIALING";
+        case PhoneState::CALL_OUT:            return "CALL_OUT";
+        case PhoneState::IN_CALL:             return "IN_CALL";
+        case PhoneState::AWAITING_EXTENSION:  return "AWAITING_EXTENSION";
+        case PhoneState::WRONG_NUMBER:        return "WRONG_NUMBER";
+        default:                              return "UNKNOWN";
     }
 }
 
@@ -57,20 +59,30 @@ void PhoneController::begin() {
 }
 
 void PhoneController::tick(unsigned long now) {
-    if (_state != PhoneState::DIALING) return;
-
-    if (_dialActivitySinceLastTick) {
-        _lastDialActivityMs = now;
-        _dialActivitySinceLastTick = false;
-        return;
-    }
-
-    if (now - _lastDialActivityMs >= DIAL_TIMEOUT_MS) {
-        const char* number = _dial.number();
-        logger.phonef("Dial complete: %s", number);
-        _state = PhoneState::CALL_OUT;
-        publishPhoneState("CALL_OUT", number);
-        if (_onDialComplete) _onDialComplete(number);
+    if (_state == PhoneState::DIALING) {
+        if (_dialActivitySinceLastTick) {
+            _lastDialActivityMs = now;
+            _dialActivitySinceLastTick = false;
+            return;
+        }
+        if (now - _lastDialActivityMs >= DIAL_TIMEOUT_MS) {
+            const char* number = _dial.number();
+            logger.phonef("Dial complete: %s", number);
+            _state = PhoneState::CALL_OUT;
+            publishPhoneState("CALL_OUT", number);
+            if (_onDialComplete) _onDialComplete(number);
+        }
+    } else if (_state == PhoneState::AWAITING_EXTENSION) {
+        if (_dialActivitySinceLastTick) {
+            _lastDialActivityMs = now;
+            _dialActivitySinceLastTick = false;
+            return;
+        }
+        if (now - _lastDialActivityMs >= EXT_TIMEOUT_MS) {
+            const char* ext = _dial.number();
+            logger.phonef("Extension timeout: %s", ext[0] ? ext : "(empty)");
+            if (_onExtDialComplete) _onExtDialComplete(ext);
+        }
     }
 }
 
@@ -107,6 +119,22 @@ void PhoneController::callAnswered() {
     publishPhoneState("IN_CALL");
 }
 
+void PhoneController::awaitExtension() {
+    if (_state != PhoneState::CALL_OUT) return;
+    logger.phone("Awaiting extension");
+    _dial.clearNumber();
+    _state = PhoneState::AWAITING_EXTENSION;
+    _dialActivitySinceLastTick = true;  // start the timeout from now
+    publishPhoneState("AWAITING_EXTENSION");
+}
+
+void PhoneController::wrongNumber() {
+    if (_state != PhoneState::CALL_OUT && _state != PhoneState::AWAITING_EXTENSION) return;
+    logger.phone("Wrong number");
+    _state = PhoneState::WRONG_NUMBER;
+    publishPhoneState("WRONG_NUMBER");
+}
+
 void PhoneController::onHandsetChanged(bool offHook) {
     if (offHook) {
         switch (_state) {
@@ -131,10 +159,12 @@ void PhoneController::onHandsetChanged(bool offHook) {
         }
     } else {
         // Handset returned — always reset to IDLE
-        bool wasActive = (_state == PhoneState::IN_CALL   ||
-                          _state == PhoneState::CALL_OUT  ||
-                          _state == PhoneState::OFF_HOOK  ||
-                          _state == PhoneState::DIALING);
+        bool wasActive = (_state == PhoneState::IN_CALL              ||
+                          _state == PhoneState::CALL_OUT             ||
+                          _state == PhoneState::OFF_HOOK             ||
+                          _state == PhoneState::DIALING              ||
+                          _state == PhoneState::AWAITING_EXTENSION   ||
+                          _state == PhoneState::WRONG_NUMBER);
         if (wasActive) logger.phonef("Handset on hook [was %s]", stateName(_state));
         _state = PhoneState::IDLE;
         publishPhoneState("IDLE");
@@ -148,7 +178,7 @@ void PhoneController::onDialActivity() {
         _state = PhoneState::DIALING;
         publishPhoneState("DIALING");
         _dialActivitySinceLastTick = true;
-    } else if (_state == PhoneState::DIALING) {
+    } else if (_state == PhoneState::DIALING || _state == PhoneState::AWAITING_EXTENSION) {
         _dialActivitySinceLastTick = true;
     }
 }
