@@ -361,7 +361,7 @@ async function req(method, path, body) {
   } catch(e) { return null; }
 }
 
-const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪',chirp:'🔔🔔',chime:'🔔'};
+const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪',chirp:'🔔🔔',chime:'🔔',pip:'🛎️'};
 function patLabel(p) { return PAT_FLAGS[p] || p; }
 
 let _currentRingPattern = null;
@@ -733,20 +733,22 @@ function updateHandset(d) {
 }
 
 const PHONE_STATE_COLORS = {
-  IDLE:     '#6b7280',
-  RINGING:  '#fcd34d',
-  OFF_HOOK: '#60a5fa',
-  DIALING:  '#60a5fa',
-  CALL_OUT: '#a78bfa',
-  IN_CALL:  '#34d399',
+  IDLE:                '#6b7280',
+  RINGING:             '#fcd34d',
+  OFF_HOOK:            '#60a5fa',
+  DIALING:             '#60a5fa',
+  CALL_OUT:            '#a78bfa',
+  AWAITING_EXTENSION:  '#fbbf24',
+  IN_CALL:             '#34d399',
 };
 const PHONE_STATE_LABELS = {
-  IDLE:     'Idle',
-  RINGING:  'Ringing',
-  OFF_HOOK: 'Off hook',
-  DIALING:  'Dialing',
-  CALL_OUT: 'Calling...',
-  IN_CALL:  'In call',
+  IDLE:                'Idle',
+  RINGING:             'Ringing',
+  OFF_HOOK:            'Off hook',
+  DIALING:             'Dialing',
+  CALL_OUT:            'Calling...',
+  AWAITING_EXTENSION:  'Awaiting extension',
+  IN_CALL:             'In call',
 };
 
 function updatePhoneState(d) {
@@ -841,6 +843,13 @@ function updatePhoneClear() {
   document.getElementById('phone-number').textContent = '\u2014';
   document.getElementById('dial-label-m').textContent = '\u2014';
   document.getElementById('phone-number-m').textContent = '\u2014';
+}
+
+function updateDialResult(text, color) {
+  for (const id of ['dial-label', 'dial-label-m']) {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = text; el.style.color = color || ''; }
+  }
 }
 
 
@@ -1224,6 +1233,10 @@ function connectWS() {
       else if (msg.topic === 'phone/dialing') updateDialDialing();
       else if (msg.topic === 'phone/digit') updateDialDigit(msg.data);
       else if (msg.topic === 'phone/clear') updatePhoneClear();
+      else if (msg.topic === 'phonebook/called') updateDialResult('\u2713 ' + msg.data.name, '#34d399');
+      else if (msg.topic === 'phonebook/error') updateDialResult('\u2717 ' + msg.data.name, '#f87171');
+      else if (msg.topic === 'phonebook/not-found') updateDialResult('Not found', '#f87171');
+      else if (msg.topic === 'phonebook/extension-not-found') updateDialResult('Ext not found', '#f87171');
       else if (msg.topic === 'phonebook/created') addPbRow(msg.data);
       else if (msg.topic === 'phonebook/updated') updatePbRow(msg.data);
       else if (msg.topic === 'phonebook/deleted') removePbRow(msg.data.id);

@@ -108,7 +108,7 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Rin
 
     mgr.setOnCallWithExtensions([&phoneCtrl, &ringer](const PhoneBookEntry& entry) {
         _pendingEntryId = entry.id;
-        ringer.ring(PATTERN_CHIRP, 1, true);
+        ringer.ring(PATTERN_PIP, 1, true);
         phoneCtrl.awaitExtension();
     });
 
