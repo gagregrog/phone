@@ -133,6 +133,16 @@ bool PhoneBookManager::hasExtensions(uint32_t id) const {
     return e && !e->extensions.empty();
 }
 
+uint8_t PhoneBookManager::extensionLength(uint32_t id) const {
+    const PhoneBookEntry* e = findById(id);
+    if (!e || e->extensions.empty()) return 0;
+    size_t len = e->extensions[0].ext.size();
+    for (size_t i = 1; i < e->extensions.size(); i++) {
+        if (e->extensions[i].ext.size() != len) return 0;
+    }
+    return (uint8_t)len;
+}
+
 void PhoneBookManager::save() {
     _store.save(_entries);
 }

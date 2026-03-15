@@ -33,7 +33,8 @@ PhoneController::PhoneController(Ringer& ringer, HandsetMonitor& handset, DialMa
     : _ringer(ringer), _handset(handset), _dial(dial),
       _state(PhoneState::IDLE),
       _lastDialActivityMs(0),
-      _dialActivitySinceLastTick(false) {}
+      _dialActivitySinceLastTick(false),
+      _expectedExtLen(0) {}
 
 void PhoneController::begin() {
     // Track when any source (alarm, timer, clock, API) starts or stops the ringer.
@@ -131,10 +132,11 @@ void PhoneController::callCompleted() {
     publishPhoneState("CALL_COMPLETED");
 }
 
-void PhoneController::awaitExtension() {
+void PhoneController::awaitExtension(uint8_t extLen) {
     if (_state != PhoneState::CALL_OUT && _state != PhoneState::DIALING) return;
     logger.phone("Awaiting extension");
     _dial.clearNumber();
+    _expectedExtLen = extLen;
     _state = PhoneState::AWAITING_EXTENSION;
     _dialActivitySinceLastTick = true;  // start the timeout from now
     publishPhoneState("AWAITING_EXTENSION");
@@ -193,5 +195,15 @@ void PhoneController::onDialActivity() {
         _dialActivitySinceLastTick = true;
     } else if (_state == PhoneState::DIALING || _state == PhoneState::AWAITING_EXTENSION) {
         _dialActivitySinceLastTick = true;
+        // Early completion: if all extensions share the same digit count,
+        // fire as soon as we've accumulated that many digits.
+        if (_state == PhoneState::AWAITING_EXTENSION && _expectedExtLen > 0) {
+            size_t len = strlen(_dial.number());
+            if (len >= _expectedExtLen) {
+                const char* ext = _dial.number();
+                logger.phonef("Extension early match: %s", ext);
+                if (_onExtDialComplete) _onExtDialComplete(ext);
+            }
+        }
     }
 }

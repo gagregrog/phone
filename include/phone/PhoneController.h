@@ -42,8 +42,9 @@ public:
     // Transition CALL_OUT → IN_CALL (called externally when outbound call is answered).
     void callAnswered();
 
-    // Transition CALL_OUT → AWAITING_EXTENSION, clear dial buffer, start extension timeout.
-    void awaitExtension();
+    // Transition CALL_OUT/DIALING → AWAITING_EXTENSION, clear dial buffer, start extension timeout.
+    // If extLen > 0, fires extension dial-complete as soon as that many digits are accumulated.
+    void awaitExtension(uint8_t extLen = 0);
 
     // Transition DIALING/CALL_OUT/AWAITING_EXTENSION → CALL_COMPLETED after phonebook call executed.
     void callCompleted();
@@ -74,6 +75,7 @@ private:
     PhoneState    _state;
     unsigned long _lastDialActivityMs;
     bool          _dialActivitySinceLastTick;
+    uint8_t       _expectedExtLen;
 
     std::function<void()>             _onAnswered;
     std::function<void()>             _onHungUp;

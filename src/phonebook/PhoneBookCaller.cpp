@@ -107,10 +107,10 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Rin
         eventsPublish("phonebook/not-found", payload.c_str());
     });
 
-    mgr.setOnCallWithExtensions([&phoneCtrl, &ringer](const PhoneBookEntry& entry) {
+    mgr.setOnCallWithExtensions([&phoneCtrl, &ringer, &mgr](const PhoneBookEntry& entry) {
         _pendingEntryId = entry.id;
         ringer.ring(PATTERN_PIP, 1, true);
-        phoneCtrl.awaitExtension();
+        phoneCtrl.awaitExtension(mgr.extensionLength(entry.id));
     });
 
     phoneCtrl.setOnExtensionDialComplete([&mgr, &phoneCtrl](const char* ext) {

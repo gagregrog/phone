@@ -26,6 +26,10 @@ public:
     bool dialExtension(uint32_t entryId, const char* ext); // lookup extension, merge, fire callback; returns true if found
     bool hasExtensions(uint32_t id) const;
 
+    // Returns the uniform extension length if all extensions have the same
+    // digit count, or 0 if lengths vary or there are no extensions.
+    uint8_t extensionLength(uint32_t id) const;
+
 private:
     PhoneBookStore& _store;
     std::vector<PhoneBookEntry> _entries;
