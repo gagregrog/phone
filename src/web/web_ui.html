@@ -1098,8 +1098,15 @@ function updateMicStatus(d) {
     const el = document.getElementById(id);
     if (el) el.style.display = _micEnabled ? '' : 'none';
   });
-  // If mic disabled, also mute audio
-  if (!_micEnabled && _audioEnabled) {
+  if (_micEnabled && !_audioEnabled) {
+    // Auto-unmute when mic is enabled
+    if (!_audioCtx) _audioCtx = new AudioContext();
+    else _audioCtx.resume();
+    _audioEnabled = true;
+    _nextPlayTime = 0;
+    _syncAudioBtns();
+  } else if (!_micEnabled && _audioEnabled) {
+    // Mute when mic is disabled
     _audioEnabled = false;
     if (_audioCtx) _audioCtx.suspend();
     _syncAudioBtns();
