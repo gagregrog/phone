@@ -19,7 +19,7 @@ input[type=checkbox]{width:16px;height:16px;margin-top:8px;accent-color:#3b82f6}
 input:focus,select:focus{outline:none;border-color:#3b82f6}
 button{cursor:pointer;border:none;border-radius:4px;padding:7px 12px;font-size:.8rem;color:#fff;transition:filter .15s}
 button:hover{filter:brightness(1.15)}
-.bp{background:#1d4ed8}.bd{background:#991b1b}.bs{background:#166534}.bm{background:#374151}.bw{background:#92400e}
+.bp{background:#1d4ed8}.bd{background:#991b1b}.bs{background:#166534}.bm{background:#374151}.bw{background:#92400e}.by{background:#1d4ed8;outline:2px solid #fcd34d;outline-offset:-2px}
 table{width:100%;border-collapse:collapse;font-size:.82rem;margin-top:8px}
 th{text-align:left;color:#6b7280;padding:5px 8px;border-bottom:1px solid #374151;font-weight:normal}
 td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
@@ -114,13 +114,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <div id="phone-number" style="font-size:1.4rem;font-weight:700;letter-spacing:.12em;color:#60a5fa;margin-top:8px;min-height:1.6rem">—</div>
     </div>
   </div>
-</div>
-
-<!-- Ringer -->
-<div class="card">
-  <h2>Ringer</h2>
-  <div id="ring-status" style="margin-bottom:10px"><span class="muted">Loading...</span></div>
-  <div style="display:flex;align-items:flex-start;gap:8px">
+  <div style="display:flex;align-items:flex-start;gap:8px;margin-top:10px">
     <div class="pgrid" id="pat-btns" style="flex:1;margin-bottom:0"></div>
     <button id="stop-ring-btn" class="bd" style="visibility:hidden;flex-shrink:0" onclick="stopRing()">Stop Ring</button>
   </div>
@@ -128,20 +122,27 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 
 <!-- Timers -->
 <div class="card">
-  <h2>Timers</h2>
-  <div class="row">
-    <div class="field"><label>Duration</label><input id="t-dur" placeholder="5m, 1h30m, 90s" style="width:130px"></div>
-    <div class="field"><label>Pattern</label><select id="t-pat"></select></div>
-    <button class="bs" onclick="addTimer()">Add Timer</button>
-    <button id="t-cancel-all" class="bd" style="display:none" onclick="cancelAllTimers()">Cancel All</button>
+  <div class="hdr" style="margin-bottom:10px">
+    <h2 style="margin:0">Timers</h2>
+    <div style="display:flex;gap:8px">
+      <button id="t-cancel-all" class="bd" style="display:none" onclick="cancelAllTimers()">Cancel All</button>
+      <button id="t-toggle" class="bm" onclick="toggleTimerForm()">Edit</button>
+    </div>
   </div>
-  <div class="row" style="margin-bottom:0">
-    <span style="font-size:.78rem;color:#6b7280;align-self:center">Quick:</span>
-    <button class="bm" onclick="quickTimer('5m')">5m</button>
-    <button class="bm" onclick="quickTimer('10m')">10m</button>
-    <button class="bm" onclick="quickTimer('15m')">15m</button>
-    <button class="bm" onclick="quickTimer('30m')">30m</button>
-    <button class="bm" onclick="quickTimer('1h')">1h</button>
+  <div id="t-form" style="display:none">
+    <div class="row">
+      <div class="field"><label>Duration</label><input id="t-dur" placeholder="5m, 1h30m, 90s" style="width:130px"></div>
+      <div class="field"><label>Pattern</label><select id="t-pat"></select></div>
+      <button class="bs" onclick="addTimer()">Add Timer</button>
+    </div>
+    <div class="row" style="margin-bottom:0">
+      <span style="font-size:.78rem;color:#6b7280;align-self:center">Quick:</span>
+      <button class="bm" onclick="quickTimer('5m')">5m</button>
+      <button class="bm" onclick="quickTimer('10m')">10m</button>
+      <button class="bm" onclick="quickTimer('15m')">15m</button>
+      <button class="bm" onclick="quickTimer('30m')">30m</button>
+      <button class="bm" onclick="quickTimer('1h')">1h</button>
+    </div>
   </div>
   <table>
     <thead><tr><th>ID</th><th>Remaining</th><th>Total</th><th>Pattern</th><th></th></tr></thead>
@@ -151,20 +152,27 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 
 <!-- Alarms -->
 <div class="card">
-  <h2>Alarms</h2>
-  <div id="edit-banner">Editing alarm <span id="edit-id"></span> &mdash; fill in fields below and click Update</div>
-  <div class="row">
-    <div class="field"><label>Time</label><input type="time" id="a-time"></div>
-    <div class="field"><label>Pattern</label><select id="a-pat"></select></div>
-    <div class="field"><label>Rings (0=&infin;)</label><input type="number" id="a-rings" value="3" min="0" max="99" style="width:70px"></div>
-    <div class="field"><label>Repeat daily</label><input type="checkbox" id="a-repeat" checked></div>
-    <div class="field"><label>Skip weekends</label><input type="checkbox" id="a-skip"></div>
-    <div class="field"><label>Enabled</label><input type="checkbox" id="a-enabled" checked></div>
+  <div class="hdr" style="margin-bottom:10px">
+    <h2 style="margin:0">Alarms</h2>
+    <div style="display:flex;gap:8px">
+      <button id="a-delete-all" class="bd" style="display:none" onclick="clearAlarms()">Delete All</button>
+      <button id="a-toggle" class="bm" onclick="toggleAlarmForm()">Edit</button>
+    </div>
   </div>
-  <div class="row">
-    <button class="bs" id="a-submit" onclick="submitAlarm()">Add Alarm</button>
-    <button class="bm" id="a-cancel" style="display:none" onclick="cancelEdit()">Cancel Edit</button>
-    <button id="a-delete-all" class="bd" style="display:none" onclick="clearAlarms()">Delete All</button>
+  <div id="a-form" style="display:none">
+    <div id="edit-banner">Editing alarm <span id="edit-id"></span> &mdash; fill in fields below and click Update</div>
+    <div class="row">
+      <div class="field"><label>Time</label><input type="time" id="a-time"></div>
+      <div class="field"><label>Pattern</label><select id="a-pat"></select></div>
+      <div class="field"><label>Rings (0=&infin;)</label><input type="number" id="a-rings" value="3" min="0" max="99" style="width:70px"></div>
+      <div class="field"><label>Repeat daily</label><input type="checkbox" id="a-repeat" checked></div>
+      <div class="field"><label>Skip weekends</label><input type="checkbox" id="a-skip"></div>
+      <div class="field"><label>Enabled</label><input type="checkbox" id="a-enabled" checked></div>
+    </div>
+    <div class="row">
+      <button class="bs" id="a-submit" onclick="submitAlarm()">Add Alarm</button>
+      <button class="bm" id="a-cancel" style="display:none" onclick="cancelEdit()">Cancel Edit</button>
+    </div>
   </div>
   <table>
     <thead><tr><th>Time</th><th>Pattern</th><th>Rings</th><th>Repeat</th><th>Skip Wknd</th><th>Enabled</th><th></th></tr></thead>
@@ -186,32 +194,39 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 
 <!-- Phone Book -->
 <div class="card">
-  <h2>Phone Book</h2>
-  <div id="pb-edit-banner" style="display:none;font-size:.82rem;color:#fbbf24;margin-bottom:8px;padding:5px 8px;background:#451a03;border-radius:4px">Editing entry <span id="pb-edit-id"></span> &mdash; fill in fields below and click Update</div>
-  <div class="row">
-    <div class="field"><label>Number</label><input id="pb-number" placeholder="411" style="width:80px"></div>
-    <div class="field"><label>Name</label><input id="pb-name" placeholder="Kitchen lights" style="width:150px"></div>
-    <div class="field"><label>URL</label><input id="pb-url" placeholder="http://192.168.1.50/json/state" style="width:220px"></div>
-    <div class="field"><label>Method</label>
-      <select id="pb-method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+  <div class="hdr" style="margin-bottom:10px">
+    <h2 style="margin:0">Phone Book</h2>
+    <div style="display:flex;gap:8px">
+      <button id="pb-delete-all" class="bd" style="display:none" onclick="clearPhoneBook()">Delete All</button>
+      <button id="pb-toggle" class="bm" onclick="togglePbForm()">Edit</button>
     </div>
   </div>
-  <div class="row">
-    <div class="field"><label>Body</label><input id="pb-req-body" placeholder='{"on":true}' style="width:300px"></div>
-  </div>
-  <div id="pb-headers"></div>
-  <div class="row">
-    <button class="bm" onclick="pbAddHeaderRow()">+ Header</button>
-  </div>
-  <div style="margin:8px 0 4px;font-size:.82rem;color:#9ca3af">Extensions</div>
-  <div id="pb-extensions"></div>
-  <div class="row">
-    <button class="bm" onclick="pbAddExtRow()">+ Extension</button>
-  </div>
-  <div class="row">
-    <button class="bs" id="pb-submit" onclick="submitPhoneBook()">Add Entry</button>
-    <button class="bm" id="pb-cancel" style="display:none" onclick="cancelPbEdit()">Cancel Edit</button>
-    <button id="pb-delete-all" class="bd" style="display:none" onclick="clearPhoneBook()">Delete All</button>
+  <div id="pb-form" style="display:none">
+    <div id="pb-edit-banner" style="display:none;font-size:.82rem;color:#fbbf24;margin-bottom:8px;padding:5px 8px;background:#451a03;border-radius:4px">Editing entry <span id="pb-edit-id"></span> &mdash; fill in fields below and click Update</div>
+    <div class="row">
+      <div class="field"><label>Number</label><input id="pb-number" placeholder="411" style="width:80px"></div>
+      <div class="field"><label>Name</label><input id="pb-name" placeholder="Kitchen lights" style="width:150px"></div>
+      <div class="field"><label>URL</label><input id="pb-url" placeholder="http://192.168.1.50/json/state" style="width:220px"></div>
+      <div class="field"><label>Method</label>
+        <select id="pb-method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label>Body</label><input id="pb-req-body" placeholder='{"on":true}' style="width:300px"></div>
+    </div>
+    <div id="pb-headers"></div>
+    <div class="row">
+      <button class="bm" onclick="pbAddHeaderRow()">+ Header</button>
+    </div>
+    <div style="margin:8px 0 4px;font-size:.82rem;color:#9ca3af">Extensions</div>
+    <div id="pb-extensions"></div>
+    <div class="row">
+      <button class="bm" onclick="pbAddExtRow()">+ Extension</button>
+    </div>
+    <div class="row">
+      <button class="bs" id="pb-submit" onclick="submitPhoneBook()">Add Entry</button>
+      <button class="bm" id="pb-cancel" style="display:none" onclick="cancelPbEdit()">Cancel Edit</button>
+    </div>
   </div>
   <table>
     <thead><tr><th>Number</th><th>Name</th><th>URL</th><th>Method</th><th>Ext</th><th></th></tr></thead>
@@ -255,9 +270,12 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 <div id="mic-modal" class="overlay" onclick="if(event.target===this)closeMicModal()">
   <div class="modal" style="width:90vw;max-width:1200px;align-items:stretch">
     <button class="mcls" onclick="closeMicModal()">&#x2715;</button>
-    <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-right:36px">
       <h2 style="margin:0">Microphone</h2>
-      <button id="audio-btn-m" class="bm" style="display:none;margin-right:36px" onclick="toggleAudio()">Unmute</button>
+      <div style="display:flex;gap:8px">
+        <button id="mic-toggle-btn-m" class="bs" onclick="toggleMic()">Enable</button>
+        <button id="audio-btn-m" class="bm" style="display:none" onclick="toggleAudio()">Unmute</button>
+      </div>
     </div>
     <canvas id="mic-canvas-m" width="1200" height="200"
       style="width:100%;background:#111;border-radius:4px;display:block"></canvas>
@@ -272,7 +290,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 
 <!-- Handset modal -->
 <div id="hs-modal" class="overlay" onclick="if(event.target===this)closeHandsetModal()">
-  <div class="modal">
+  <div class="modal" style="width:520px;max-width:90vw;overflow-x:hidden">
     <button class="mcls" onclick="closeHandsetModal()">&#x2715;</button>
     <h2 style="margin:0">Handset</h2>
     <svg id="phone-svg-m" viewBox="0 0 120 125" width="420" height="438" style="flex-shrink:0">
@@ -317,7 +335,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <div id="phone-state-label-m" style="font-size:2rem;font-weight:600;color:#6b7280">—</div>
       <div style="font-size:1rem;color:#6b7280;margin-top:4px">Call state</div>
       <div id="dial-label-m" style="font-size:1rem;color:#6b7280;margin-top:14px">—</div>
-      <div id="phone-number-m" style="font-size:2.8rem;font-weight:700;letter-spacing:.14em;color:#60a5fa;margin-top:10px;min-height:3.2rem">—</div>
+      <div id="phone-number-m" style="font-size:2.8rem;font-weight:700;letter-spacing:.14em;color:#60a5fa;margin-top:10px;min-height:3.2rem;word-break:break-all">—</div>
     </div>
   </div>
 </div>
@@ -326,7 +344,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 <div id="log-modal" class="overlay" onclick="if(event.target===this)closeLogsModal()">
   <div class="modal" style="width:90vw;max-width:1000px;align-items:stretch">
     <button class="mcls" onclick="closeLogsModal()">&#x2715;</button>
-    <h2 style="margin:0">Logs</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-right:36px"><h2 style="margin:0">Logs</h2><button class="bm" onclick="clearLogs()">Clear</button></div>
     <div id="log-out-m" style="background:#0d1117;border-radius:4px;padding:10px;height:65vh;overflow-y:auto;font-family:monospace;font-size:.78rem;line-height:1.6;width:100%"></div>
   </div>
 </div>
@@ -346,12 +364,16 @@ async function req(method, path, body) {
 const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪',chirp:'🔔🔔',chime:'🔔'};
 function patLabel(p) { return PAT_FLAGS[p] || p; }
 
+let _currentRingPattern = null;
+
 function _applyPatterns(data) {
   const btns = document.getElementById('pat-btns');
   btns.innerHTML = '';
   data.forEach(p => {
     const b = document.createElement('button');
-    b.className = 'bp'; b.textContent = patLabel(p); b.title = p;
+    b.className = (p === _currentRingPattern) ? 'by' : 'bp';
+    b.textContent = patLabel(p); b.title = p;
+    b.dataset.pat = p;
     b.onclick = () => startRing(p);
     btns.appendChild(b);
   });
@@ -365,11 +387,16 @@ function _applyPatterns(data) {
   document.getElementById('a-pat').value = 'us';
 }
 
+function _syncPatBtnHighlight() {
+  document.querySelectorAll('#pat-btns button[data-pat]').forEach(b => {
+    b.className = (b.dataset.pat === _currentRingPattern) ? 'by' : 'bp';
+  });
+}
+
 function updateRinger(d) {
-  const el = document.getElementById('ring-status');
-  const cls = d.ringing ? 'don' : 'doff';
-  el.innerHTML = `<span class="dot ${cls}"></span>${d.ringing ? '<strong>Currently ringing</strong>' : 'Not ringing'}`;
+  _currentRingPattern = d.ringing ? (d.pattern || null) : null;
   document.getElementById('stop-ring-btn').style.visibility = d.ringing ? '' : 'hidden';
+  _syncPatBtnHighlight();
   ['phone-svg','phone-svg-m'].forEach(id => {
     const svg = document.getElementById(id);
     if (svg) svg.classList.toggle('ringing', !!d.ringing);
@@ -383,6 +410,67 @@ async function startRing(p) {
 
 async function stopRing() {
   await req('POST', '/ring/stop');
+}
+
+// ── Form toggle helpers ─────────────────────────────────────────────────────
+let _timerEditing = false, _alarmEditing = false, _pbEditing = false;
+
+function _setEditing(formId, toggleId, editing, syncFn) {
+  document.getElementById(formId).style.display = editing ? '' : 'none';
+  document.getElementById(toggleId).textContent = editing ? 'Cancel' : 'Edit';
+  if (syncFn) syncFn();
+}
+
+function _reRenderTimerRows() {
+  const tb = document.getElementById('t-body');
+  if (!tb) return;
+  const rows = tb.querySelectorAll('tr[data-id]');
+  rows.forEach(row => {
+    const id = row.getAttribute('data-id');
+    const tdCells = row.querySelectorAll('td');
+    const lastTd = tdCells[tdCells.length - 1];
+    lastTd.innerHTML = _timerEditing ? `<button class="bd" onclick="cancelTimer(${id})">Cancel</button>` : '';
+  });
+}
+
+function _reRenderAlarmRows() {
+  const tb = document.getElementById('a-body');
+  if (!tb) return;
+  // Re-read alarm data from existing rows is tricky; re-fetch from status
+  // Simpler: just toggle button visibility via re-rendering from stored data
+  // Since alarmRow uses _alarmEditing, we re-apply by fetching status
+  refreshAll();
+}
+
+function _reRenderPbRows() {
+  // pbRow uses _pbEditing, re-apply by fetching status
+  refreshAll();
+}
+
+function toggleTimerForm() {
+  _timerEditing = !_timerEditing;
+  _setEditing('t-form', 't-toggle', _timerEditing, _syncTimerActions);
+  _reRenderTimerRows();
+}
+
+function toggleAlarmForm() {
+  if (_alarmEditing) {
+    cancelEdit();
+  } else {
+    _alarmEditing = true;
+    _setEditing('a-form', 'a-toggle', true, _syncAlarmActions);
+    _reRenderAlarmRows();
+  }
+}
+
+function togglePbForm() {
+  if (_pbEditing) {
+    cancelPbEdit();
+  } else {
+    _pbEditing = true;
+    _setEditing('pb-form', 'pb-toggle', true, _syncPbActions);
+    _reRenderPbRows();
+  }
 }
 
 const _timerEnds = {};
@@ -417,7 +505,8 @@ function _timerTickStop() {
 }
 
 function timerRow(t) {
-  return `<tr data-id="${t.id}"><td>${t.id}</td><td id="tr-rem-${t.id}">${t.remaining}</td><td>${t.total}</td><td>${t.pattern}</td><td><button class="bd" onclick="cancelTimer(${t.id})">Cancel</button></td></tr>`;
+  const acts = _timerEditing ? `<button class="bd" onclick="cancelTimer(${t.id})">Cancel</button>` : '';
+  return `<tr data-id="${t.id}"><td>${t.id}</td><td id="tr-rem-${t.id}">${t.remaining}</td><td>${t.total}</td><td>${t.pattern}</td><td>${acts}</td></tr>`;
 }
 
 function _registerTimer(t) {
@@ -429,7 +518,7 @@ function _registerTimer(t) {
 
 function _syncTimerActions() {
   const hasTimers = !!document.querySelector('#t-body tr[data-id]');
-  document.getElementById('t-cancel-all').style.display = hasTimers ? '' : 'none';
+  document.getElementById('t-cancel-all').style.display = (_timerEditing && hasTimers) ? '' : 'none';
 }
 
 function addTimerRow(t) {
@@ -480,6 +569,9 @@ async function addTimer() {
   if (!dur) return;
   await req('POST', `/timer/${dur}/${pat}`);
   document.getElementById('t-dur').value = '';
+  _timerEditing = false;
+  _setEditing('t-form', 't-toggle', false, _syncTimerActions);
+  _reRenderTimerRows();
 }
 
 async function quickTimer(dur) {
@@ -497,6 +589,8 @@ async function cancelAllTimers() {
 
 function alarmRow(a) {
   const j = JSON.stringify(a).replace(/'/g, "&#39;");
+  const acts = _alarmEditing ? `<button class="bm" onclick='editAlarm(${j})'>Edit</button>
+        <button class="bd" onclick="deleteAlarm(${a.id})">Delete</button>` : '';
   return `<tr data-id="${a.id}">
       <td><strong>${a.time}</strong></td>
       <td>${a.pattern}</td>
@@ -504,16 +598,13 @@ function alarmRow(a) {
       <td><span class="badge ${a.repeat ? 'bon':'boff'}">${a.repeat?'yes':'no'}</span></td>
       <td><span class="badge ${a.skipWeekends ? 'bon':'boff'}">${a.skipWeekends?'yes':'no'}</span></td>
       <td><span class="badge ${a.enabled ? 'bon':'boff'}">${a.enabled?'on':'off'}</span></td>
-      <td style="white-space:nowrap">
-        <button class="bm" onclick='editAlarm(${j})'>Edit</button>
-        <button class="bd" onclick="deleteAlarm(${a.id})">Delete</button>
-      </td>
+      <td style="white-space:nowrap">${acts}</td>
     </tr>`;
 }
 
 function _syncAlarmActions() {
   const hasAlarms = !!document.querySelector('#a-body tr[data-id]');
-  document.getElementById('a-delete-all').style.display = hasAlarms ? '' : 'none';
+  document.getElementById('a-delete-all').style.display = (_alarmEditing && hasAlarms) ? '' : 'none';
 }
 
 function addAlarmRow(a) {
@@ -558,6 +649,7 @@ function _applyAlarms(data) {
 
 function editAlarm(a) {
   editId = a.id;
+  document.getElementById('a-form').style.display = '';
   document.getElementById('a-time').value = a.time;
   document.getElementById('a-pat').value = a.pattern;
   document.getElementById('a-rings').value = a.rings;
@@ -573,10 +665,15 @@ function editAlarm(a) {
 
 function cancelEdit() {
   editId = null;
+  _alarmEditing = false;
+  document.getElementById('a-form').style.display = 'none';
+  document.getElementById('a-toggle').textContent = 'Edit';
   document.getElementById('edit-banner').style.display = 'none';
   document.getElementById('a-submit').textContent = 'Add Alarm';
   document.getElementById('a-cancel').style.display = 'none';
   document.getElementById('a-time').value = '';
+  _syncAlarmActions();
+  refreshAll();
 }
 
 async function submitAlarm() {
@@ -596,6 +693,7 @@ async function submitAlarm() {
     cancelEdit();
   } else {
     await req('POST', '/alarm', body);
+    cancelEdit();
   }
 }
 
@@ -756,7 +854,9 @@ function pbRow(e) {
   const shortUrl = e.url.length > 40 ? e.url.substring(0, 37) + '...' : e.url;
   const hasExt = e.extensions && e.extensions.length;
   const extCount = hasExt ? `<span class="badge bon">${e.extensions.length}</span>` : '';
-  const testBtn = hasExt ? '' : `<button class="bp" onclick="testPb(${e.id})">Trigger</button>`;
+  const triggerBtn = (!hasExt && _pbEditing) ? `<button class="bp" onclick="testPb(${e.id})">Trigger</button>` : '';
+  const editBtns = _pbEditing ? `<button class="bm" onclick='editPb(${j})'>Edit</button>
+      <button class="bd" onclick="deletePb(${e.id})">Delete</button>` : '';
   let html = `<tr data-pb-id="${e.id}">
     <td><strong>${e.number}</strong></td>
     <td>${e.name}</td>
@@ -764,22 +864,22 @@ function pbRow(e) {
     <td>${e.method}</td>
     <td>${extCount}</td>
     <td style="white-space:nowrap">
-      <button class="bm" onclick='editPb(${j})'>Edit</button>
-      ${testBtn}
-      <button class="bd" onclick="deletePb(${e.id})">Delete</button>
+      ${editBtns}
+      ${triggerBtn}
     </td>
   </tr>`;
   if (hasExt) {
     for (const x of e.extensions) {
       const extMethod = x.method || e.method;
       const extPath = x.path || '';
+      const extTrigger = _pbEditing ? `<button class="bp" onclick="testPbExt(${e.id},'${x.ext}')">Trigger</button>` : '';
       html += `<tr data-pb-ext-of="${e.id}" style="color:#9ca3af;font-size:.78rem">
         <td style="padding-left:24px">ext ${x.ext}</td>
         <td>${x.name}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${extPath}</td>
         <td>${extMethod}</td>
         <td></td>
-        <td><button class="bp" onclick="testPbExt(${e.id},'${x.ext}')">Trigger</button></td>
+        <td>${extTrigger}</td>
       </tr>`;
     }
   }
@@ -788,7 +888,7 @@ function pbRow(e) {
 
 function _syncPbActions() {
   const has = !!document.querySelector('#pb-tbody tr[data-pb-id]');
-  document.getElementById('pb-delete-all').style.display = has ? '' : 'none';
+  document.getElementById('pb-delete-all').style.display = (_pbEditing && has) ? '' : 'none';
 }
 
 function addPbRow(e) {
@@ -904,6 +1004,7 @@ function _getPbHeaders() {
 
 function editPb(e) {
   pbEditId = e.id;
+  document.getElementById('pb-form').style.display = '';
   document.getElementById('pb-number').value = e.number;
   document.getElementById('pb-name').value = e.name;
   document.getElementById('pb-url').value = e.url;
@@ -922,6 +1023,9 @@ function editPb(e) {
 
 function cancelPbEdit() {
   pbEditId = null;
+  _pbEditing = false;
+  document.getElementById('pb-form').style.display = 'none';
+  document.getElementById('pb-toggle').textContent = 'Edit';
   document.getElementById('pb-edit-banner').style.display = 'none';
   document.getElementById('pb-submit').textContent = 'Add Entry';
   document.getElementById('pb-cancel').style.display = 'none';
@@ -932,6 +1036,8 @@ function cancelPbEdit() {
   document.getElementById('pb-req-body').value = '';
   document.getElementById('pb-headers').innerHTML = '';
   document.getElementById('pb-extensions').innerHTML = '';
+  _syncPbActions();
+  refreshAll();
 }
 
 async function submitPhoneBook() {
@@ -949,16 +1055,10 @@ async function submitPhoneBook() {
   };
   if (pbEditId !== null) {
     await req('PUT', '/phonebook/' + pbEditId, body);
-    cancelPbEdit();
   } else {
     await req('POST', '/phonebook', body);
-    document.getElementById('pb-number').value = '';
-    document.getElementById('pb-name').value = '';
-    document.getElementById('pb-url').value = '';
-    document.getElementById('pb-req-body').value = '';
-    document.getElementById('pb-headers').innerHTML = '';
-    document.getElementById('pb-extensions').innerHTML = '';
   }
+  cancelPbEdit();
 }
 
 async function deletePb(id) {
@@ -1187,9 +1287,10 @@ let _micEnabled = false;
 
 function updateMicStatus(d) {
   _micEnabled = d.enabled;
-  const btn = document.getElementById('mic-toggle-btn');
-  btn.textContent = _micEnabled ? 'Disable' : 'Enable';
-  btn.className = _micEnabled ? 'bd' : 'bs';
+  ['mic-toggle-btn', 'mic-toggle-btn-m'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (btn) { btn.textContent = _micEnabled ? 'Disable' : 'Enable'; btn.className = _micEnabled ? 'bd' : 'bs'; }
+  });
   // Show/hide unmute buttons based on mic state
   ['audio-btn', 'audio-btn-m'].forEach(id => {
     const el = document.getElementById(id);
