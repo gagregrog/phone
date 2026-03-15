@@ -101,11 +101,11 @@ void PhoneBookManager::dial(const char* number) {
     }
 }
 
-void PhoneBookManager::dialExtension(uint32_t entryId, const char* ext) {
+bool PhoneBookManager::dialExtension(uint32_t entryId, const char* ext) {
     const PhoneBookEntry* base = findById(entryId);
     if (!base) {
         if (_onExtensionNotFound) _onExtensionNotFound(entryId, ext);
-        return;
+        return false;
     }
 
     for (const auto& x : base->extensions) {
@@ -120,11 +120,12 @@ void PhoneBookManager::dialExtension(uint32_t entryId, const char* ext) {
             merged.body    = x.body.empty() ? base->body : x.body;
             merged.headers = base->headers;
             if (_onCall) _onCall(merged);
-            return;
+            return true;
         }
     }
 
     if (_onExtensionNotFound) _onExtensionNotFound(entryId, ext);
+    return false;
 }
 
 bool PhoneBookManager::hasExtensions(uint32_t id) const {

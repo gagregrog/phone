@@ -23,7 +23,7 @@ public:
 
     void init();                  // load from store
     void dial(const char* number); // lookup + fire callback
-    void dialExtension(uint32_t entryId, const char* ext); // lookup extension, merge, fire callback
+    bool dialExtension(uint32_t entryId, const char* ext); // lookup extension, merge, fire callback; returns true if found
     bool hasExtensions(uint32_t id) const;
 
 private:

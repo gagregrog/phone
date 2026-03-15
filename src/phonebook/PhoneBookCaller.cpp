@@ -92,8 +92,9 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Rin
         mgr.dial(number);
     });
 
-    mgr.setOnCall([](const PhoneBookEntry& entry) {
+    mgr.setOnCall([&phoneCtrl](const PhoneBookEntry& entry) {
         phoneBookCallerExec(entry);
+        phoneCtrl.callCompleted();
     });
 
     mgr.setOnNotFound([&phoneCtrl](const char* number) {
@@ -115,8 +116,8 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Rin
     phoneCtrl.setOnExtensionDialComplete([&mgr, &phoneCtrl](const char* ext) {
         if (!ext || ext[0] == '\0') {
             phoneCtrl.wrongNumber();
-        } else {
-            mgr.dialExtension(_pendingEntryId, ext);
+        } else if (mgr.dialExtension(_pendingEntryId, ext)) {
+            phoneCtrl.callCompleted();
         }
     });
 
