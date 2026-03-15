@@ -761,6 +761,12 @@ function updatePhoneState(d) {
     const el = document.getElementById(id);
     if (el) { el.textContent = text; el.style.color = color; }
   }
+  if (state === 'IDLE') {
+    for (const id of ['dial-label', 'dial-label-m']) {
+      const el = document.getElementById(id);
+      if (el) { el.textContent = '\u2014'; el.style.color = ''; }
+    }
+  }
 }
 
 
@@ -842,8 +848,10 @@ function updatePhoneClear() {
   _clearDialHoles();
   _setDialFace(false);
   document.getElementById('dial-label').textContent = '\u2014';
+  document.getElementById('dial-label').style.color = '';
   document.getElementById('phone-number').textContent = '\u2014';
   document.getElementById('dial-label-m').textContent = '\u2014';
+  document.getElementById('dial-label-m').style.color = '';
   document.getElementById('phone-number-m').textContent = '\u2014';
 }
 
