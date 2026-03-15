@@ -341,9 +341,7 @@ async function req(method, path, body) {
 const PAT_FLAGS = {us:'🇺🇸',uk:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',jp:'🇯🇵',it:'🇮🇹',se:'🇸🇪',chirp:'🔔🔔',chime:'🔔'};
 function patLabel(p) { return PAT_FLAGS[p] || p; }
 
-async function loadPatterns() {
-  const data = await req('GET', '/ring/patterns');
-  if (!data) return;
+function _applyPatterns(data) {
   const btns = document.getElementById('pat-btns');
   btns.innerHTML = '';
   data.forEach(p => {
@@ -373,12 +371,6 @@ function updateRinger(d) {
   });
 }
 
-async function loadRinger() {
-  const data = await req('GET', '/ring/status');
-  const el = document.getElementById('ring-status');
-  if (!data) { el.innerHTML = '<span class="muted">Unknown</span>'; return; }
-  updateRinger(data);
-}
 
 async function startRing(p) {
   await req('POST', '/ring/' + p);
@@ -462,8 +454,7 @@ function clearTimerTable() {
   _syncTimerActions();
 }
 
-async function loadTimers() {
-  const data = await req('GET', '/timer/status');
+function _applyTimers(data) {
   const tb = document.getElementById('t-body');
   if (!tb) return;
   for (const id in _timerEnds) delete _timerEnds[id];
@@ -548,8 +539,7 @@ function clearAlarmTable() {
   _syncAlarmActions();
 }
 
-async function loadAlarms() {
-  const data = await req('GET', '/alarm');
+function _applyAlarms(data) {
   const tb = document.getElementById('a-body');
   if (!tb) return;
   if (!data || !data.length) {
@@ -623,12 +613,6 @@ function updateClock(d) {
   document.getElementById('clock-mode-btn').style.display = d.enabled ? '' : 'none';
 }
 
-async function loadClock() {
-  const data = await req('GET', '/clock');
-  const el = document.getElementById('clock-status');
-  if (!data) { el.innerHTML = '<span class="muted">Unknown</span>'; return; }
-  updateClock(data);
-}
 
 async function toggleClock() {
   await req('POST', '/clock/toggle');
@@ -672,16 +656,6 @@ function updatePhoneState(d) {
   }
 }
 
-async function loadPhoneState() {
-  const data = await req('GET', '/phone/state');
-  if (data) updatePhoneState(data);
-}
-
-async function loadHandset() {
-  const data = await req('GET', '/handset/status');
-  if (!data) return;
-  updateHandset(data);
-}
 
 function openHandsetModal() {
   document.getElementById('hs-modal').classList.add('open');
@@ -766,15 +740,6 @@ function updatePhoneClear() {
   document.getElementById('phone-number-m').textContent = '\u2014';
 }
 
-async function loadPhone() {
-  const data = await req('GET', '/phone/status');
-  if (!data) return;
-  if (data.number) {
-    const formatted = formatPhoneNumber(data.number);
-    document.getElementById('phone-number').textContent = formatted;
-    document.getElementById('phone-number-m').textContent = formatted;
-  }
-}
 
 // ── Phone Book ──────────────────────────────────────────────────────────────
 let pbEditId = null;
@@ -829,8 +794,7 @@ function clearPbTable() {
   _syncPbActions();
 }
 
-async function loadPhoneBook() {
-  const data = await req('GET', '/phonebook');
+function _applyPhoneBook(data) {
   const tb = document.getElementById('pb-tbody');
   if (!tb) return;
   if (!data || !data.length) {
@@ -938,15 +902,32 @@ async function clearPhoneBook() {
   await req('DELETE', '/phonebook');
 }
 
-async function loadDeviceIP() {
-  try {
-    const r = await fetch('/ip');
-    if (r.ok) document.getElementById('device-ip').textContent = await r.text();
-  } catch(e) {}
-}
-
 async function refreshAll() {
-  await Promise.all([loadRinger(), loadTimers(), loadAlarms(), loadClock(), loadHandset(), loadPhone(), loadPhoneState(), loadPhoneBook(), loadMic()]);
+  const data = await req('GET', '/status');
+  if (!data) return;
+  if (data.device && data.device.ip) {
+    document.getElementById('device-ip').textContent = data.device.ip;
+  }
+  if (data.ringer) {
+    updateRinger(data.ringer);
+    if (data.ringer.patterns) {
+      _applyPatterns(data.ringer.patterns);
+    }
+  }
+  if (data.timers) _applyTimers(data.timers);
+  if (data.alarms) _applyAlarms(data.alarms);
+  if (data.clock) updateClock(data.clock);
+  if (data.handset) updateHandset(data.handset);
+  if (data.phone) updatePhoneState(data.phone);
+  if (data.dial) {
+    if (data.dial.number) {
+      const formatted = formatPhoneNumber(data.dial.number);
+      document.getElementById('phone-number').textContent = formatted;
+      document.getElementById('phone-number-m').textContent = formatted;
+    }
+  }
+  if (data.phonebook) _applyPhoneBook(data.phonebook);
+  if (data.mic) updateMicStatus(data.mic);
 }
 
 function appendLog(level, msg, time, category) {
@@ -1007,7 +988,7 @@ function connectWS() {
     badge.textContent = 'Live';
     badge.className = '';
     lastMsgTime = Date.now();
-    // Only refresh on reconnect after being offline; initial load is handled by loadPatterns().then(refreshAll)
+    // Only refresh on reconnect after being offline; initial load is handled by refreshAll()
     if (wsWasOffline) {
       wsWasOffline = false;
       refreshAll();
@@ -1125,10 +1106,6 @@ function updateMicStatus(d) {
   }
 }
 
-async function loadMic() {
-  const data = await req('GET', '/mic/status');
-  if (data) updateMicStatus(data);
-}
 
 async function toggleMic() {
   await req('POST', _micEnabled ? '/mic/disable' : '/mic/enable');
@@ -1268,8 +1245,7 @@ function _drawMicWaveform() {
 
 // Watchdog: retry every 3s regardless of whether onclose fired
 setInterval(connectWS, 3000);
-loadDeviceIP();
-loadPatterns().then(refreshAll);
+refreshAll();
 connectWS();
 </script>
 </body>

@@ -44,6 +44,15 @@ void ringerAPIBegin(PhoneController& phone) {
             sendJson(request, 200, doc);
         });
 
+    apiAddStatusContributor("ringer", [&phone](JsonDocument& doc, const char* key) {
+        JsonObject obj = doc[key].to<JsonObject>();
+        obj["ringing"] = phone.isRinging();
+        JsonArray arr = obj["patterns"].to<JsonArray>();
+        for (uint8_t i = 0; i < PATTERN_COUNT; i++) {
+            arr.add(ALL_PATTERNS[i]->name);
+        }
+    });
+
     // NotFoundHandler: POST /ring/{pattern}[/{count}]
     apiAddNotFoundHandler([&phone](AsyncWebServerRequest* request) -> bool {
         String url = request->url();

@@ -3,9 +3,14 @@
 #include "web/API.h"
 #include "system/Logger.h"
 #include <ESPAsyncWebServer.h>
+#include <ArduinoJson.h>
 
 void micAPIBegin(MicReader& mic) {
     AsyncWebServer* server = apiGetServer();
+
+    apiAddStatusContributor("mic", [](JsonDocument& doc, const char* key) {
+        doc[key].to<JsonObject>()["enabled"] = micIsEnabled();
+    });
 
     server->on("/mic/status", HTTP_GET, [](AsyncWebServerRequest* req) {
         logger.apif("[%s] GET /mic/status", req->client()->remoteIP().toString().c_str());

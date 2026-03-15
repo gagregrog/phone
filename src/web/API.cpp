@@ -3,15 +3,29 @@
 #include <ESPAsyncWebServer.h>
 #include <vector>
 
+struct StatusEntry { const char* key; StatusContributor fn; };
+
 static AsyncWebServer* _server = nullptr;
 static std::vector<NotFoundHandler> _notFoundHandlers;
 static std::vector<BodyHandler> _bodyHandlers;
+static std::vector<StatusEntry> _statusContributors;
 
 void apiInit(uint16_t port) {
     _server = new AsyncWebServer(port);
 }
 
 void apiStart() {
+    _server->on("/status", HTTP_GET, [](AsyncWebServerRequest* request) {
+        logger.apif("[%s] GET /status", request->client()->remoteIP().toString().c_str());
+        JsonDocument doc;
+        for (auto& entry : _statusContributors) {
+            entry.fn(doc, entry.key);
+        }
+        String body;
+        serializeJson(doc, body);
+        request->send(200, "application/json", body);
+    });
+
     _server->onNotFound([](AsyncWebServerRequest* request) {
         for (auto& h : _notFoundHandlers) {
             if (h(request)) return;
@@ -41,4 +55,8 @@ void apiAddNotFoundHandler(NotFoundHandler h) {
 
 void apiAddBodyHandler(BodyHandler h) {
     _bodyHandlers.push_back(h);
+}
+
+void apiAddStatusContributor(const char* key, StatusContributor fn) {
+    _statusContributors.push_back({key, fn});
 }

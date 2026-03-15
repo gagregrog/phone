@@ -33,6 +33,10 @@ void clockAPIBegin(ClockManager& mgr) {
 
     AsyncWebServer* server = apiGetServer();
 
+    apiAddStatusContributor("clock", [](JsonDocument& doc, const char* key) {
+        clockStateFillJson(doc[key].to<JsonObject>(), _clockMgr->isEnabled(), _clockMgr->getChimeMode());
+    });
+
     // GET /clock — return enabled state and chime mode
     server->on("/clock", HTTP_GET, [](AsyncWebServerRequest* req) {
         logger.apif("[%s] GET /clock", req->client()->remoteIP().toString().c_str());

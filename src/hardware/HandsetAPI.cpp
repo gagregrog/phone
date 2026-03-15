@@ -8,6 +8,11 @@ static HandsetMonitor* _handset = nullptr;
 
 void handsetAPIBegin(HandsetMonitor& handset) {
     _handset = &handset;
+
+    apiAddStatusContributor("handset", [](JsonDocument& doc, const char* key) {
+        handsetFillJson(doc[key].to<JsonObject>(), _handset->isOffHook());
+    });
+
     apiGetServer()->on("/handset/status", HTTP_GET, [](AsyncWebServerRequest* request) {
         JsonDocument doc;
         handsetFillJson(doc.to<JsonObject>(), _handset->isOffHook());

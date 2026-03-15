@@ -31,6 +31,13 @@ void alarmAPIBegin(AlarmManager& mgr) {
         sendJson(req, 200, doc);
     });
 
+    apiAddStatusContributor("alarms", [](JsonDocument& doc, const char* key) {
+        JsonArray arr = doc[key].to<JsonArray>();
+        for (const auto& e : _alarmMgr->getAll()) {
+            alarmFillJson(arr.add<JsonObject>(), e);
+        }
+    });
+
     // DELETE /alarm — delete all alarms
     server->on("/alarm", HTTP_DELETE, [](AsyncWebServerRequest* req) {
         logger.apif("[%s] DELETE /alarm", req->client()->remoteIP().toString().c_str());

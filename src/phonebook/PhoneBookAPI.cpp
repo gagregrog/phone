@@ -20,6 +20,13 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
     _pbMgr = &mgr;
     AsyncWebServer* server = apiGetServer();
 
+    apiAddStatusContributor("phonebook", [](JsonDocument& doc, const char* key) {
+        JsonArray arr = doc[key].to<JsonArray>();
+        for (const auto& e : _pbMgr->getAll()) {
+            phoneBookFillJson(arr.add<JsonObject>(), e, true);
+        }
+    });
+
     // GET /phonebook — list all entries (masked headers)
     server->on("/phonebook", HTTP_GET, [](AsyncWebServerRequest* req) {
         logger.apif("[%s] GET /phonebook", req->client()->remoteIP().toString().c_str());

@@ -29,6 +29,13 @@ void timerAPIBegin(Timer& timer) {
             sendJson(request, 200, doc);
         });
 
+    apiAddStatusContributor("timers", [&timer](JsonDocument& doc, const char* key) {
+        JsonArray arr = doc[key].to<JsonArray>();
+        for (size_t i = 0; i < timer.count(); ++i) {
+            timerInfoFillJson(arr.add<JsonObject>(), timer.infoAt(i));
+        }
+    });
+
     // POST /timer/cancel — cancel all active timers
     server->on("/timer/cancel", HTTP_POST,
         [&timer](AsyncWebServerRequest* request) {
