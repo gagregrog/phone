@@ -39,7 +39,10 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
     });
 
     // DELETE /phonebook — delete all entries
+    // ESPAsyncWebServer prefix-matches, so /phonebook/<id> also hits this handler.
+    // Check the exact path to avoid deleting everything on a single-item delete.
     server->on("/phonebook", HTTP_DELETE, [](AsyncWebServerRequest* req) {
+        if (req->url() != "/phonebook") return;
         logger.apif("[%s] DELETE /phonebook", req->client()->remoteIP().toString().c_str());
         _pbMgr->removeAll();
         JsonDocument doc;
@@ -71,12 +74,20 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
                     return;
                 }
 
+                if (entry->type == "builtin") {
+                    req->send(400, "application/json", "{\"error\":\"cannot test builtin entries\"}");
+                    return;
+                }
+
                 PhoneBookEntry testEntry = *entry;
                 if (extStr.length() > 0) {
-                    // Test a specific extension
                     bool found = false;
                     for (const auto& x : entry->extensions) {
                         if (x.ext == extStr.c_str()) {
+                            if (x.type == "builtin") {
+                                req->send(400, "application/json", "{\"error\":\"cannot test builtin extensions\"}");
+                                return;
+                            }
                             testEntry.url = entry->url + x.path;
                             testEntry.method = x.method.empty() ? entry->method : x.method;
                             testEntry.body = x.body.empty() ? entry->body : x.body;
@@ -128,8 +139,12 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
             PhoneBookEntry e;
             phoneBookParseJson(doc.as<JsonObject>(), e);
 
-            if (e.number.empty() || e.url.empty()) {
-                req->send(400, "application/json", "{\"error\":\"number and url are required\"}");
+            if (e.number.empty()) {
+                req->send(400, "application/json", "{\"error\":\"number is required\"}");
+                return;
+            }
+            if (e.type != "builtin" && e.url.empty()) {
+                req->send(400, "application/json", "{\"error\":\"url is required for http entries\"}");
                 return;
             }
 

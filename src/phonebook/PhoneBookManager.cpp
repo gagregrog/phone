@@ -7,6 +7,10 @@ void PhoneBookManager::setOnCall(std::function<void(const PhoneBookEntry&)> cb) 
     _onCall = std::move(cb);
 }
 
+void PhoneBookManager::setOnBuiltinCall(std::function<void(const PhoneBookEntry&)> cb) {
+    _onBuiltinCall = std::move(cb);
+}
+
 void PhoneBookManager::setOnNotFound(std::function<void(const char*)> cb) {
     _onNotFound = std::move(cb);
 }
@@ -31,13 +35,18 @@ uint32_t PhoneBookManager::add(const PhoneBookEntry& entry) {
 bool PhoneBookManager::update(uint32_t id, const PhoneBookEntry& entry) {
     for (auto& e : _entries) {
         if (e.id == id) {
-            e.number     = entry.number;
-            e.name       = entry.name;
-            e.url        = entry.url;
-            e.method     = entry.method.empty() ? "GET" : entry.method;
-            e.body       = entry.body;
-            e.headers    = entry.headers;
-            e.extensions = entry.extensions;
+            e.number          = entry.number;
+            e.name            = entry.name;
+            e.type            = entry.type;
+            e.url             = entry.url;
+            e.method          = entry.method.empty() ? "GET" : entry.method;
+            e.body            = entry.body;
+            e.headers         = entry.headers;
+            e.extensions      = entry.extensions;
+            e.builtinFunction = entry.builtinFunction;
+            e.pattern         = entry.pattern;
+            e.cycles          = entry.cycles;
+            e.callbackDelay   = entry.callbackDelay;
             save();
             return true;
         }
@@ -93,6 +102,8 @@ void PhoneBookManager::dial(const char* number) {
     if (e) {
         if (!e->extensions.empty()) {
             if (_onCallWithExtensions) _onCallWithExtensions(*e);
+        } else if (e->type == "builtin") {
+            if (_onBuiltinCall) _onBuiltinCall(*e);
         } else {
             if (_onCall) _onCall(*e);
         }
@@ -110,16 +121,25 @@ bool PhoneBookManager::dialExtension(uint32_t entryId, const char* ext) {
 
     for (const auto& x : base->extensions) {
         if (x.ext == ext) {
-            // Build a merged entry
             PhoneBookEntry merged;
             merged.id      = base->id;
             merged.number  = base->number;
             merged.name    = x.name.empty() ? base->name : x.name;
-            merged.url     = base->url + x.path;
-            merged.method  = x.method.empty() ? base->method : x.method;
-            merged.body    = x.body.empty() ? base->body : x.body;
-            merged.headers = base->headers;
-            if (_onCall) _onCall(merged);
+
+            if (x.type == "builtin") {
+                merged.type            = "builtin";
+                merged.builtinFunction = x.builtinFunction;
+                merged.pattern         = x.pattern;
+                merged.cycles          = x.cycles;
+                merged.callbackDelay   = x.callbackDelay;
+                if (_onBuiltinCall) _onBuiltinCall(merged);
+            } else {
+                merged.url     = base->url + x.path;
+                merged.method  = x.method.empty() ? base->method : x.method;
+                merged.body    = x.body.empty() ? base->body : x.body;
+                merged.headers = base->headers;
+                if (_onCall) _onCall(merged);
+            }
             return true;
         }
     }

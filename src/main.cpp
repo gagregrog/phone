@@ -32,6 +32,7 @@
 #include "phonebook/PhoneBookManager.h"
 #include "phonebook/PhoneBookCaller.h"
 #include "phonebook/PhoneBookAPI.h"
+#include "phonebook/PhoneBookBuiltins.h"
 #include "timer/TimerEvents.h"
 #include "alarm/AlarmEvents.h"
 #include "clock/ClockEvents.h"
@@ -85,6 +86,7 @@ void setup() {
     dialManagerEventsBegin(dialMgr);
     phoneCtrl.begin();   // subscribes to ring/started, ring/stopped; adds handset+dial callbacks
     phoneBookCallerBegin(phoneBookMgr, phoneCtrl, ringer);
+    phoneBookBuiltinsBegin(phoneBookMgr, phoneCtrl, ringer);
     timerEventsBegin(timer);
     alarmEventsBegin(alarmMgr);
     clockEventsBegin(clockMgr);
@@ -126,6 +128,7 @@ void loop() {
     ArduinoOTA.handle();
     webSocketLoop();
     phoneCtrl.tick(millis());
+    phoneBookBuiltinsTick(millis());
     timer.update();
     alarmMgr.tick();
     clockMgr.tick();

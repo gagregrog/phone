@@ -17,6 +17,7 @@ public:
     const PhoneBookEntry* findByNumber(const char* number) const;
 
     void setOnCall(std::function<void(const PhoneBookEntry&)> cb);
+    void setOnBuiltinCall(std::function<void(const PhoneBookEntry&)> cb);
     void setOnNotFound(std::function<void(const char*)> cb);
     void setOnCallWithExtensions(std::function<void(const PhoneBookEntry&)> cb);
     void setOnExtensionNotFound(std::function<void(uint32_t, const char*)> cb);
@@ -35,6 +36,7 @@ private:
     std::vector<PhoneBookEntry> _entries;
     uint32_t _nextId;
     std::function<void(const PhoneBookEntry&)> _onCall;
+    std::function<void(const PhoneBookEntry&)> _onBuiltinCall;
     std::function<void(const char*)> _onNotFound;
     std::function<void(const PhoneBookEntry&)> _onCallWithExtensions;
     std::function<void(uint32_t, const char*)> _onExtensionNotFound;

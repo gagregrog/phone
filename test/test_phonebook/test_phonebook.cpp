@@ -426,6 +426,197 @@ void test_url_merging_concatenation(void) {
 }
 
 // ---------------------------------------------------------------------------
+// builtin entries
+// ---------------------------------------------------------------------------
+
+static PhoneBookEntry makeBuiltinEntry(const char* number, const char* name,
+                                        const char* pattern, uint16_t cycles,
+                                        uint16_t delay) {
+    PhoneBookEntry e;
+    e.id              = 0;
+    e.number          = number;
+    e.name            = name;
+    e.type            = "builtin";
+    e.builtinFunction = "ring_callback";
+    e.pattern         = pattern;
+    e.cycles          = cycles;
+    e.callbackDelay   = delay;
+    return e;
+}
+
+void test_dial_builtin_fires_on_builtin_call(void) {
+    mgr->add(makeBuiltinEntry("77", "Callback", "us", 3, 5));
+
+    bool called = false;
+    std::string calledPattern;
+    uint16_t calledCycles = 0;
+    mgr->setOnBuiltinCall([&](const PhoneBookEntry& e) {
+        called = true;
+        calledPattern = e.pattern;
+        calledCycles = e.cycles;
+    });
+    mgr->setOnCall([](const PhoneBookEntry&) {
+        TEST_FAIL_MESSAGE("onCall should not fire for builtin entries");
+    });
+
+    mgr->dial("77");
+    TEST_ASSERT_TRUE(called);
+    TEST_ASSERT_EQUAL_STRING("us", calledPattern.c_str());
+    TEST_ASSERT_EQUAL(3, calledCycles);
+}
+
+void test_dial_builtin_does_not_fire_on_call(void) {
+    mgr->add(makeBuiltinEntry("77", "Callback", "uk", 0, 2));
+
+    bool httpCalled = false;
+    mgr->setOnCall([&](const PhoneBookEntry&) { httpCalled = true; });
+    mgr->setOnBuiltinCall([](const PhoneBookEntry&) {});
+
+    mgr->dial("77");
+    TEST_ASSERT_FALSE(httpCalled);
+}
+
+void test_dial_http_type_still_fires_on_call(void) {
+    PhoneBookEntry e = makeEntry("411", "Info", "http://info.com");
+    e.type = "http";
+    mgr->add(e);
+
+    bool called = false;
+    mgr->setOnCall([&](const PhoneBookEntry&) { called = true; });
+    mgr->setOnBuiltinCall([](const PhoneBookEntry&) {
+        TEST_FAIL_MESSAGE("onBuiltinCall should not fire for http entries");
+    });
+
+    mgr->dial("411");
+    TEST_ASSERT_TRUE(called);
+}
+
+void test_dial_empty_type_treated_as_http(void) {
+    PhoneBookEntry e = makeEntry("411", "Info", "http://info.com");
+    // e.type is empty by default
+    mgr->add(e);
+
+    bool called = false;
+    mgr->setOnCall([&](const PhoneBookEntry&) { called = true; });
+
+    mgr->dial("411");
+    TEST_ASSERT_TRUE(called);
+}
+
+void test_builtin_extension_fires_on_builtin_call(void) {
+    PhoneBookEntry e = makeEntry("411", "WLED", "http://wled.local", "POST");
+    PhoneBookExtension x1;
+    x1.ext = "1"; x1.name = "On"; x1.path = "/on";
+    PhoneBookExtension x2;
+    x2.ext = "2"; x2.name = "Ring Me"; x2.type = "builtin";
+    x2.builtinFunction = "ring_callback"; x2.pattern = "de"; x2.cycles = 5; x2.callbackDelay = 3;
+    e.extensions.push_back(x1);
+    e.extensions.push_back(x2);
+    uint32_t id = mgr->add(e);
+
+    bool builtinCalled = false;
+    std::string calledPattern;
+    uint16_t calledCycles = 0;
+    uint16_t calledDelay = 0;
+    mgr->setOnBuiltinCall([&](const PhoneBookEntry& entry) {
+        builtinCalled = true;
+        calledPattern = entry.pattern;
+        calledCycles = entry.cycles;
+        calledDelay = entry.callbackDelay;
+    });
+    mgr->setOnCall([](const PhoneBookEntry&) {
+        TEST_FAIL_MESSAGE("onCall should not fire for builtin extension");
+    });
+
+    mgr->dialExtension(id, "2");
+    TEST_ASSERT_TRUE(builtinCalled);
+    TEST_ASSERT_EQUAL_STRING("de", calledPattern.c_str());
+    TEST_ASSERT_EQUAL(5, calledCycles);
+    TEST_ASSERT_EQUAL(3, calledDelay);
+}
+
+void test_http_extension_still_fires_on_call(void) {
+    PhoneBookEntry e = makeEntry("411", "WLED", "http://wled.local", "POST");
+    PhoneBookExtension x1;
+    x1.ext = "1"; x1.name = "On"; x1.path = "/on";
+    PhoneBookExtension x2;
+    x2.ext = "2"; x2.name = "Ring Me"; x2.type = "builtin";
+    x2.builtinFunction = "ring_callback"; x2.pattern = "de"; x2.cycles = 5; x2.callbackDelay = 3;
+    e.extensions.push_back(x1);
+    e.extensions.push_back(x2);
+    uint32_t id = mgr->add(e);
+
+    bool httpCalled = false;
+    mgr->setOnCall([&](const PhoneBookEntry&) { httpCalled = true; });
+    mgr->setOnBuiltinCall([](const PhoneBookEntry&) {});
+
+    mgr->dialExtension(id, "1");
+    TEST_ASSERT_TRUE(httpCalled);
+}
+
+void test_builtin_with_extensions_fires_on_call_with_extensions(void) {
+    PhoneBookEntry e = makeBuiltinEntry("77", "Callbacks", "us", 3, 5);
+    PhoneBookExtension x1;
+    x1.ext = "1"; x1.name = "US"; x1.type = "builtin";
+    x1.builtinFunction = "ring_callback"; x1.pattern = "us"; x1.cycles = 3; x1.callbackDelay = 5;
+    PhoneBookExtension x2;
+    x2.ext = "2"; x2.name = "UK"; x2.type = "builtin";
+    x2.builtinFunction = "ring_callback"; x2.pattern = "uk"; x2.cycles = 2; x2.callbackDelay = 3;
+    e.extensions.push_back(x1);
+    e.extensions.push_back(x2);
+    mgr->add(e);
+
+    bool fired = false;
+    mgr->setOnCallWithExtensions([&](const PhoneBookEntry&) { fired = true; });
+    mgr->setOnBuiltinCall([](const PhoneBookEntry&) {
+        TEST_FAIL_MESSAGE("onBuiltinCall should not fire for builtin entry with extensions");
+    });
+
+    mgr->dial("77");
+    TEST_ASSERT_TRUE(fired);
+}
+
+void test_builtin_ext_on_builtin_parent_fires_builtin_call(void) {
+    PhoneBookEntry e = makeBuiltinEntry("77", "Callbacks", "us", 3, 5);
+    PhoneBookExtension x1;
+    x1.ext = "1"; x1.name = "US"; x1.type = "builtin";
+    x1.builtinFunction = "ring_callback"; x1.pattern = "us"; x1.cycles = 3; x1.callbackDelay = 5;
+    PhoneBookExtension x2;
+    x2.ext = "2"; x2.name = "UK"; x2.type = "builtin";
+    x2.builtinFunction = "ring_callback"; x2.pattern = "uk"; x2.cycles = 2; x2.callbackDelay = 3;
+    e.extensions.push_back(x1);
+    e.extensions.push_back(x2);
+    uint32_t id = mgr->add(e);
+
+    bool builtinCalled = false;
+    std::string calledPattern;
+    mgr->setOnBuiltinCall([&](const PhoneBookEntry& entry) {
+        builtinCalled = true;
+        calledPattern = entry.pattern;
+    });
+
+    mgr->dialExtension(id, "2");
+    TEST_ASSERT_TRUE(builtinCalled);
+    TEST_ASSERT_EQUAL_STRING("uk", calledPattern.c_str());
+}
+
+void test_update_preserves_builtin_fields(void) {
+    PhoneBookEntry e = makeBuiltinEntry("77", "Callback", "us", 3, 5);
+    uint32_t id = mgr->add(e);
+
+    PhoneBookEntry upd = makeBuiltinEntry("77", "Updated", "uk", 10, 2);
+    mgr->update(id, upd);
+
+    const PhoneBookEntry* result = mgr->findById(id);
+    TEST_ASSERT_NOT_NULL(result);
+    TEST_ASSERT_EQUAL_STRING("builtin", result->type.c_str());
+    TEST_ASSERT_EQUAL_STRING("ring_callback", result->builtinFunction.c_str());
+    TEST_ASSERT_EQUAL_STRING("uk", result->pattern.c_str());
+    TEST_ASSERT_EQUAL(10, result->cycles);
+    TEST_ASSERT_EQUAL(2, result->callbackDelay);
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -464,6 +655,16 @@ int main(int argc, char** argv) {
     RUN_TEST(test_has_extensions);
     RUN_TEST(test_update_copies_extensions);
     RUN_TEST(test_url_merging_concatenation);
+
+    RUN_TEST(test_dial_builtin_fires_on_builtin_call);
+    RUN_TEST(test_dial_builtin_does_not_fire_on_call);
+    RUN_TEST(test_dial_http_type_still_fires_on_call);
+    RUN_TEST(test_dial_empty_type_treated_as_http);
+    RUN_TEST(test_builtin_extension_fires_on_builtin_call);
+    RUN_TEST(test_http_extension_still_fires_on_call);
+    RUN_TEST(test_builtin_with_extensions_fires_on_call_with_extensions);
+    RUN_TEST(test_builtin_ext_on_builtin_parent_fires_builtin_call);
+    RUN_TEST(test_update_preserves_builtin_fields);
 
     return UNITY_END();
 }
