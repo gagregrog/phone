@@ -195,6 +195,18 @@ void PhoneController::onDialActivity() {
         _dialActivitySinceLastTick = true;
     } else if (_state == PhoneState::DIALING || _state == PhoneState::AWAITING_EXTENSION) {
         _dialActivitySinceLastTick = true;
+        if (_state == PhoneState::DIALING && _earlyMatchCheck) {
+            const char* num = _dial.number();
+            if (num[0] != '\0' && _earlyMatchCheck(num)) {
+                logger.phonef("Early number match: %s", num);
+                if (_onDialComplete) _onDialComplete(num);
+                if (_state == PhoneState::DIALING) {
+                    _state = PhoneState::CALL_OUT;
+                    publishPhoneState("CALL_OUT", num);
+                }
+                return;
+            }
+        }
         // Early completion: if all extensions share the same digit count,
         // fire as soon as we've accumulated that many digits.
         if (_state == PhoneState::AWAITING_EXTENSION && _expectedExtLen > 0) {

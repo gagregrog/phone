@@ -617,6 +617,37 @@ void test_update_preserves_builtin_fields(void) {
 }
 
 // ---------------------------------------------------------------------------
+// early match
+// ---------------------------------------------------------------------------
+
+void test_unique_complete_match_exact(void) {
+    mgr->add(makeEntry("789", "Test", "http://test.com"));
+    TEST_ASSERT_TRUE(mgr->isUniqueCompleteMatch("789"));
+}
+
+void test_unique_complete_match_no_match(void) {
+    mgr->add(makeEntry("789", "Test", "http://test.com"));
+    TEST_ASSERT_FALSE(mgr->isUniqueCompleteMatch("78"));
+    TEST_ASSERT_FALSE(mgr->isUniqueCompleteMatch("999"));
+}
+
+void test_unique_complete_match_ambiguous_prefix(void) {
+    mgr->add(makeEntry("78", "Short", "http://short.com"));
+    mgr->add(makeEntry("789", "Long", "http://long.com"));
+    // "78" matches exactly, but "789" starts with "78" — ambiguous
+    TEST_ASSERT_FALSE(mgr->isUniqueCompleteMatch("78"));
+    // "789" matches exactly and nothing longer starts with "789"
+    TEST_ASSERT_TRUE(mgr->isUniqueCompleteMatch("789"));
+}
+
+void test_unique_complete_match_unrelated_entries(void) {
+    mgr->add(makeEntry("411", "Info", "http://info.com"));
+    mgr->add(makeEntry("789", "Test", "http://test.com"));
+    TEST_ASSERT_TRUE(mgr->isUniqueCompleteMatch("411"));
+    TEST_ASSERT_TRUE(mgr->isUniqueCompleteMatch("789"));
+}
+
+// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -665,6 +696,11 @@ int main(int argc, char** argv) {
     RUN_TEST(test_builtin_with_extensions_fires_on_call_with_extensions);
     RUN_TEST(test_builtin_ext_on_builtin_parent_fires_builtin_call);
     RUN_TEST(test_update_preserves_builtin_fields);
+
+    RUN_TEST(test_unique_complete_match_exact);
+    RUN_TEST(test_unique_complete_match_no_match);
+    RUN_TEST(test_unique_complete_match_ambiguous_prefix);
+    RUN_TEST(test_unique_complete_match_unrelated_entries);
 
     return UNITY_END();
 }

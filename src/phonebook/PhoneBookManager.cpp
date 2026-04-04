@@ -1,4 +1,5 @@
 #include "phonebook/PhoneBookManager.h"
+#include <string.h>
 
 PhoneBookManager::PhoneBookManager(PhoneBookStore& store)
     : _store(store), _nextId(1) {}
@@ -161,6 +162,19 @@ uint8_t PhoneBookManager::extensionLength(uint32_t id) const {
         if (e->extensions[i].ext.size() != len) return 0;
     }
     return (uint8_t)len;
+}
+
+bool PhoneBookManager::isUniqueCompleteMatch(const char* digits) const {
+    bool exactFound = false;
+    size_t len = strlen(digits);
+    for (const auto& e : _entries) {
+        if (e.number == digits) {
+            exactFound = true;
+        } else if (e.number.size() > len && e.number.compare(0, len, digits) == 0) {
+            return false;
+        }
+    }
+    return exactFound;
 }
 
 void PhoneBookManager::save() {

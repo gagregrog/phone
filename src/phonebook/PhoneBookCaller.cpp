@@ -92,6 +92,10 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Rin
         mgr.dial(number);
     });
 
+    phoneCtrl.setEarlyMatchCheck([&mgr](const char* digits) {
+        return mgr.isUniqueCompleteMatch(digits);
+    });
+
     mgr.setOnCall([&phoneCtrl](const PhoneBookEntry& entry) {
         phoneBookCallerExec(entry);
         phoneCtrl.callCompleted();

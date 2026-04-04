@@ -60,6 +60,7 @@ public:
     void setOnOffHook(std::function<void()> cb)               { _onOffHook   = cb; }
     void setOnDialComplete(std::function<void(const char*)> cb) { _onDialComplete = cb; }
     void setOnExtensionDialComplete(std::function<void(const char*)> cb) { _onExtDialComplete = cb; }
+    void setEarlyMatchCheck(std::function<bool(const char*)> cb) { _earlyMatchCheck = cb; }
 
     static constexpr unsigned long DIAL_TIMEOUT_MS = 3000;
     static constexpr unsigned long EXT_TIMEOUT_MS  = 5000;
@@ -82,4 +83,5 @@ private:
     std::function<void()>             _onOffHook;
     std::function<void(const char*)>  _onDialComplete;
     std::function<void(const char*)>  _onExtDialComplete;
+    std::function<bool(const char*)>  _earlyMatchCheck;
 };
