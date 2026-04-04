@@ -7,8 +7,6 @@
 
 void wifiSetupBegin(const char* apName, const char* mdnsHostname) {
   WiFiManager wm;
-  wm.setHttpPort(8080);  // Keep port 80 free for the REST API
-
   // Auto-connect using saved credentials.
   // If none exist, starts an AP with the given name and
   // blocks until the user configures credentials via the portal.
