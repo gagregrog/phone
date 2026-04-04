@@ -120,9 +120,15 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Rin
     phoneCtrl.setOnExtensionDialComplete([&mgr, &phoneCtrl, &ringer](const char* ext) {
         if (!ext || ext[0] == '\0') {
             phoneCtrl.wrongNumber();
-        } else if (mgr.dialExtension(_pendingEntryId, ext)) {
+        } else {
+            // Play confirmation pip and spin until it finishes. The HTTP call
+            // in dialExtension blocks the main loop, which would prevent
+            // ringer.update() from stopping the motor on time.
             ringer.ring(PATTERN_PIP, 1, true);
-            phoneCtrl.callCompleted();
+            while (ringer.isRinging()) ringer.update();
+            if (mgr.dialExtension(_pendingEntryId, ext)) {
+                phoneCtrl.callCompleted();
+            }
         }
     });
 
