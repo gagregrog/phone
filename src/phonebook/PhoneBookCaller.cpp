@@ -117,10 +117,11 @@ void phoneBookCallerBegin(PhoneBookManager& mgr, PhoneController& phoneCtrl, Rin
         phoneCtrl.awaitExtension(mgr.extensionLength(entry.id));
     });
 
-    phoneCtrl.setOnExtensionDialComplete([&mgr, &phoneCtrl](const char* ext) {
+    phoneCtrl.setOnExtensionDialComplete([&mgr, &phoneCtrl, &ringer](const char* ext) {
         if (!ext || ext[0] == '\0') {
             phoneCtrl.wrongNumber();
         } else if (mgr.dialExtension(_pendingEntryId, ext)) {
+            ringer.ring(PATTERN_PIP, 1, true);
             phoneCtrl.callCompleted();
         }
     });
