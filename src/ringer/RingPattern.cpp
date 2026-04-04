@@ -11,7 +11,7 @@ static const unsigned long PHASES_IT[] = {1000, 1000, 1000, 3000};
 static const unsigned long PHASES_SE[] = {1000, 5000};
 static const unsigned long PHASES_CHIRP[] = {150, 100, 150, 600};
 static const unsigned long PHASES_CHIME[] = {400, 400};
-static const unsigned long PHASES_PIP[] = {75, 75};
+static const unsigned long PHASES_PIP[] = {90, 90};
 
 const RingPattern PATTERN_US = {"us", PHASES_US, 2};
 const RingPattern PATTERN_UK = {"uk", PHASES_UK, 4};
