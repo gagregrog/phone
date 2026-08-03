@@ -207,7 +207,7 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
       <div class="field"><label>Number</label><input id="pb-number" placeholder="411" style="width:80px"></div>
       <div class="field"><label>Name</label><input id="pb-name" placeholder="Kitchen lights" style="width:150px"></div>
       <div class="field"><label>Type</label>
-        <select id="pb-type" onchange="pbTypeChanged()"><option value="http">HTTP Request</option><option value="builtin">Built-in Function</option></select>
+        <select id="pb-type" onchange="pbTypeChanged()"><option value="http">HTTP Request</option><option value="builtin">Built-in Function</option><option value="wled">WLED</option></select>
       </div>
     </div>
     <div id="pb-builtin-fields" style="display:none">
@@ -235,10 +235,18 @@ td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
         <button class="bm" onclick="pbAddHeaderRow()">+ Header</button>
       </div>
     </div>
-    <div style="margin:8px 0 4px;font-size:.82rem;color:#9ca3af">Extensions</div>
-    <div id="pb-extensions"></div>
-    <div class="row">
-      <button class="bm" onclick="pbAddExtRow()">+ Extension</button>
+    <div id="pb-wled-fields" style="display:none">
+      <div class="row">
+        <div class="field"><label>mDNS Name</label><input id="pb-wled-host" placeholder="books" style="width:150px"> <span style="color:#9ca3af;font-size:.8rem">.local</span></div>
+      </div>
+      <div style="font-size:.8rem;color:#9ca3af;margin-bottom:8px">On/Off and memories 1-4 (ext 9/0/1/2/3/4) are created automatically, posting to <code>/json/state</code>.</div>
+    </div>
+    <div id="pb-ext-section">
+      <div style="margin:8px 0 4px;font-size:.82rem;color:#9ca3af">Extensions</div>
+      <div id="pb-extensions"></div>
+      <div class="row">
+        <button class="bm" onclick="pbAddExtRow()">+ Extension</button>
+      </div>
     </div>
     <div class="row">
       <button class="bs" id="pb-submit" onclick="submitPhoneBook()">Add Entry</button>
@@ -484,7 +492,9 @@ function toggleAlarmForm() {
 let _pbSuppressExtClear = false;
 function pbTypeChanged() {
   const t = document.getElementById('pb-type').value;
-  document.getElementById('pb-http-fields').style.display = (t === 'builtin') ? 'none' : '';
+  document.getElementById('pb-http-fields').style.display = (t === 'http') ? '' : 'none';
+  document.getElementById('pb-wled-fields').style.display = (t === 'wled') ? '' : 'none';
+  document.getElementById('pb-ext-section').style.display = (t === 'wled') ? 'none' : '';
   if (!_pbSuppressExtClear) document.getElementById('pb-extensions').innerHTML = '';
   _syncPbBuiltinTop();
 }
@@ -1128,13 +1138,14 @@ function editPb(e) {
     document.getElementById('pb-cycles').value = e.cycles != null ? e.cycles : 3;
     document.getElementById('pb-callback-delay').value = e.callbackDelay != null ? e.callbackDelay : 5;
   }
+  document.getElementById('pb-wled-host').value = e.wledHost || '';
   document.getElementById('pb-url').value = e.url || '';
   document.getElementById('pb-method').value = e.method || 'GET';
   document.getElementById('pb-req-body').value = e.body || '';
   document.getElementById('pb-headers').innerHTML = '';
   if (e.headers) e.headers.forEach(h => pbAddHeaderRow(h.name, h.value));
   document.getElementById('pb-extensions').innerHTML = '';
-  if (e.extensions) e.extensions.forEach(x => pbAddExtRow(x));
+  if (e.extensions && e.type !== 'wled') e.extensions.forEach(x => pbAddExtRow(x));
   document.getElementById('pb-edit-banner').style.display = '';
   document.getElementById('pb-edit-id').textContent = e.id;
   document.getElementById('pb-submit').textContent = 'Update Entry';
@@ -1158,6 +1169,7 @@ function cancelPbEdit() {
   document.getElementById('pb-pattern').value = 'us';
   document.getElementById('pb-cycles').value = '3';
   document.getElementById('pb-callback-delay').value = '5';
+  document.getElementById('pb-wled-host').value = '';
   document.getElementById('pb-url').value = '';
   document.getElementById('pb-method').value = 'GET';
   document.getElementById('pb-req-body').value = '';
@@ -1180,6 +1192,10 @@ async function submitPhoneBook() {
       payload.cycles = parseInt(document.getElementById('pb-cycles').value) || 0;
       payload.callbackDelay = parseInt(document.getElementById('pb-callback-delay').value) || 0;
     }
+  } else if (type === 'wled') {
+    const wledHost = document.getElementById('pb-wled-host').value.trim();
+    if (!wledHost) return;
+    payload.wledHost = wledHost;
   } else {
     const url = document.getElementById('pb-url').value.trim();
     if (!url && !extensions.length) return;

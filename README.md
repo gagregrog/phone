@@ -763,3 +763,26 @@ Test-fire an entry's base HTTP request.
 #### `POST /phonebook/test/{id}/{ext}`
 
 Test-fire a specific extension's merged HTTP request.
+
+#### WLED entries
+
+`"type": "wled"` is a first-class shortcut for wiring up a WLED light:
+provide only `number`, `name`, `type`, and `wledHost` (the device's mDNS
+name, without `.local`) — the server generates `url`, `method`, and the six
+extensions automatically:
+
+```json
+{
+  "number": "26657",
+  "name": "Books",
+  "type": "wled",
+  "wledHost": "books"
+}
+```
+
+This expands to `url: "http://books.local/json/state"`, `method: "POST"`,
+and extensions `9`/`On` (`{"on":true}`), `0`/`Off` (`{"on":false}`), and
+`1`-`4`/`M1`-`M4` (`{"ps":1}`-`{"ps":4}`). `url`, `method`, and `extensions`
+are server-generated and read-only for this type — editing a `wled` entry
+only changes `wledHost`, and the fields above are regenerated on every
+create/update.

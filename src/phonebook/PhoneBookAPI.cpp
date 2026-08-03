@@ -143,7 +143,11 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
                 req->send(400, "application/json", "{\"error\":\"number is required\"}");
                 return;
             }
-            if (e.type != "builtin" && e.url.empty()) {
+            if (e.type == "wled" && e.wledHost.empty()) {
+                req->send(400, "application/json", "{\"error\":\"mDNS host is required for wled entries\"}");
+                return;
+            }
+            if (e.type != "builtin" && e.type != "wled" && e.url.empty()) {
                 req->send(400, "application/json", "{\"error\":\"url is required for http entries\"}");
                 return;
             }
@@ -228,6 +232,11 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
 
             PhoneBookEntry e;
             phoneBookParseJson(doc.as<JsonObject>(), e, existing);
+
+            if (e.type == "wled" && e.wledHost.empty()) {
+                request->send(400, "application/json", "{\"error\":\"mDNS host is required for wled entries\"}");
+                return true;
+            }
 
             if (_pbMgr->update(id, e)) {
                 logger.apif("[%s] PUT /phonebook/%u: updated", ip.c_str(), (unsigned)id);

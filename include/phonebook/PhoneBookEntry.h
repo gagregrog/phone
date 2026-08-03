@@ -27,7 +27,7 @@ struct PhoneBookEntry {
     uint32_t id;
     std::string number;             // dialed number, e.g. "411"
     std::string name;               // human-readable label, e.g. "Kitchen lights"
-    std::string type;               // "http" (default) or "builtin"
+    std::string type;               // "http" (default), "builtin", or "wled"
     // HTTP fields
     std::string url;                // full URL, e.g. "http://192.168.1.50/json/state"
     std::string method;             // "GET", "POST", "PUT", "DELETE"
@@ -39,4 +39,6 @@ struct PhoneBookEntry {
     std::string pattern;            // ring pattern name, e.g. "us"
     uint16_t cycles = 0;            // ring cycles (0 = infinite)
     uint16_t callbackDelay = 0;     // seconds to wait after hang-up
+    // WLED fields
+    std::string wledHost;           // mDNS short name, e.g. "books" (no ".local" suffix)
 };

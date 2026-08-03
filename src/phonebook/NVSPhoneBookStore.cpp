@@ -34,6 +34,7 @@ void NVSPhoneBookStore::load(std::vector<PhoneBookEntry>& entries) {
         e.url             = (const char*)(obj["url"]    | "");
         e.method          = (const char*)(obj["method"] | "GET");
         e.body            = (const char*)(obj["body"]   | "");
+        e.wledHost        = (const char*)(obj["wledHost"] | "");
         e.builtinFunction = (const char*)(obj["builtinFunction"] | "");
         e.pattern         = (const char*)(obj["pattern"] | "");
         e.cycles          = obj["cycles"] | 0;
@@ -84,6 +85,7 @@ void NVSPhoneBookStore::save(const std::vector<PhoneBookEntry>& entries) {
         obj["method"] = e.method.c_str();
         obj["body"]   = e.body.c_str();
 
+        if (!e.wledHost.empty())        obj["wledHost"]        = e.wledHost.c_str();
         if (!e.builtinFunction.empty()) obj["builtinFunction"] = e.builtinFunction.c_str();
         if (!e.pattern.empty())         obj["pattern"]         = e.pattern.c_str();
         if (e.cycles)                   obj["cycles"]          = e.cycles;

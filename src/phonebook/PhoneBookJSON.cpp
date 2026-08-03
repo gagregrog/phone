@@ -44,6 +44,10 @@ void phoneBookFillJson(JsonObject obj, const PhoneBookEntry& e, bool mask) {
         }
     }
 
+    if (e.type == "wled") {
+        obj["wledHost"] = e.wledHost.c_str();
+    }
+
     JsonArray exts = obj["extensions"].to<JsonArray>();
     for (const auto& x : e.extensions) {
         JsonObject xo = exts.add<JsonObject>();
@@ -74,6 +78,7 @@ void phoneBookParseJson(JsonObject obj, PhoneBookEntry& e, const PhoneBookEntry*
     e.url             = (const char*)(obj["url"]    | "");
     e.method          = (const char*)(obj["method"] | "GET");
     e.body            = (const char*)(obj["body"]   | "");
+    e.wledHost        = (const char*)(obj["wledHost"] | "");
 
     e.headers.clear();
     JsonArray hdrs = obj["headers"];

@@ -1,4 +1,5 @@
 #include "phonebook/PhoneBookManager.h"
+#include "phonebook/WledIntegration.h"
 #include <string.h>
 
 PhoneBookManager::PhoneBookManager(PhoneBookStore& store)
@@ -27,6 +28,7 @@ void PhoneBookManager::setOnExtensionNotFound(std::function<void(uint32_t, const
 uint32_t PhoneBookManager::add(const PhoneBookEntry& entry) {
     PhoneBookEntry e = entry;
     e.id = _nextId++;
+    if (e.type == "wled") wledApplyDefaults(e);
     if (e.method.empty()) e.method = "GET";
     _entries.push_back(e);
     save();
@@ -48,6 +50,8 @@ bool PhoneBookManager::update(uint32_t id, const PhoneBookEntry& entry) {
             e.pattern         = entry.pattern;
             e.cycles          = entry.cycles;
             e.callbackDelay   = entry.callbackDelay;
+            e.wledHost        = entry.wledHost;
+            if (e.type == "wled") wledApplyDefaults(e);
             save();
             return true;
         }

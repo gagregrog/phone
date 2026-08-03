@@ -617,6 +617,76 @@ void test_update_preserves_builtin_fields(void) {
 }
 
 // ---------------------------------------------------------------------------
+// wled entries
+// ---------------------------------------------------------------------------
+
+static PhoneBookEntry makeWledEntry(const char* number, const char* name,
+                                     const char* wledHost) {
+    PhoneBookEntry e;
+    e.id        = 0;
+    e.number    = number;
+    e.name      = name;
+    e.type      = "wled";
+    e.wledHost  = wledHost;
+    return e;
+}
+
+void test_add_wled_generates_extensions_and_url(void) {
+    PhoneBookEntry e = makeWledEntry("26657", "Books", "books");
+    uint32_t id = mgr->add(e);
+
+    const PhoneBookEntry* stored = mgr->findById(id);
+    TEST_ASSERT_NOT_NULL(stored);
+    TEST_ASSERT_EQUAL_STRING("http://books.local/json/state", stored->url.c_str());
+    TEST_ASSERT_EQUAL_STRING("POST", stored->method.c_str());
+    TEST_ASSERT_EQUAL(6, (int)stored->extensions.size());
+}
+
+void test_dial_wled_entry_fires_on_call_with_extensions(void) {
+    PhoneBookEntry e = makeWledEntry("26657", "Books", "books");
+    mgr->add(e);
+
+    bool fired = false;
+    mgr->setOnCallWithExtensions([&](const PhoneBookEntry&) { fired = true; });
+    mgr->setOnBuiltinCall([](const PhoneBookEntry&) {
+        TEST_FAIL_MESSAGE("onBuiltinCall should not fire for wled entries");
+    });
+
+    mgr->dial("26657");
+    TEST_ASSERT_TRUE(fired);
+}
+
+void test_dial_wled_extension_fires_on_call(void) {
+    PhoneBookEntry e = makeWledEntry("26657", "Books", "books");
+    uint32_t id = mgr->add(e);
+
+    std::string calledUrl, calledMethod, calledBody;
+    mgr->setOnCall([&](const PhoneBookEntry& entry) {
+        calledUrl    = entry.url;
+        calledMethod = entry.method;
+        calledBody   = entry.body;
+    });
+
+    mgr->dialExtension(id, "1");
+    TEST_ASSERT_EQUAL_STRING("http://books.local/json/state", calledUrl.c_str());
+    TEST_ASSERT_EQUAL_STRING("POST", calledMethod.c_str());
+    TEST_ASSERT_EQUAL_STRING("{\"ps\":1}", calledBody.c_str());
+}
+
+void test_update_wled_regenerates_on_host_change(void) {
+    PhoneBookEntry e = makeWledEntry("26657", "Books", "books");
+    uint32_t id = mgr->add(e);
+
+    PhoneBookEntry upd = makeWledEntry("26657", "Books", "kitchen");
+    mgr->update(id, upd);
+
+    const PhoneBookEntry* stored = mgr->findById(id);
+    TEST_ASSERT_NOT_NULL(stored);
+    TEST_ASSERT_EQUAL_STRING("http://kitchen.local/json/state", stored->url.c_str());
+    TEST_ASSERT_EQUAL(6, (int)stored->extensions.size());
+}
+
+// ---------------------------------------------------------------------------
 // early match
 // ---------------------------------------------------------------------------
 
@@ -696,6 +766,11 @@ int main(int argc, char** argv) {
     RUN_TEST(test_builtin_with_extensions_fires_on_call_with_extensions);
     RUN_TEST(test_builtin_ext_on_builtin_parent_fires_builtin_call);
     RUN_TEST(test_update_preserves_builtin_fields);
+
+    RUN_TEST(test_add_wled_generates_extensions_and_url);
+    RUN_TEST(test_dial_wled_entry_fires_on_call_with_extensions);
+    RUN_TEST(test_dial_wled_extension_fires_on_call);
+    RUN_TEST(test_update_wled_regenerates_on_host_change);
 
     RUN_TEST(test_unique_complete_match_exact);
     RUN_TEST(test_unique_complete_match_no_match);
