@@ -39,16 +39,45 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
     });
 
     // DELETE /phonebook — delete all entries
-    // ESPAsyncWebServer prefix-matches, so /phonebook/<id> also hits this handler.
-    // Check the exact path to avoid deleting everything on a single-item delete.
+    // DELETE /phonebook/<id> — delete a single entry
+    // ESPAsyncWebServer prefix-matches, so /phonebook/<id> also hits this handler;
+    // we check the exact path and handle the single-delete case inline instead of
+    // just bailing out (a bare early return here would leave the request
+    // unanswered, since the notFoundHandler chain never runs once this handler
+    // has already claimed it).
     server->on("/phonebook", HTTP_DELETE, [](AsyncWebServerRequest* req) {
-        if (req->url() != "/phonebook") return;
-        logger.apif("[%s] DELETE /phonebook", req->client()->remoteIP().toString().c_str());
-        _pbMgr->removeAll();
+        String url = req->url();
+        String ip = req->client()->remoteIP().toString();
+
+        if (url == "/phonebook") {
+            logger.apif("[%s] DELETE /phonebook", ip.c_str());
+            _pbMgr->removeAll();
+            JsonDocument doc;
+            doc["status"] = "cleared";
+            sendJson(req, 200, doc);
+            eventsPublish("phonebook/cleared", "{}");
+            return;
+        }
+
+        uint32_t id = (uint32_t)url.substring(11).toInt();
+        if (id == 0) {
+            req->send(400, "application/json", "{\"error\":\"invalid id\"}");
+            return;
+        }
+
         JsonDocument doc;
-        doc["status"] = "cleared";
-        sendJson(req, 200, doc);
-        eventsPublish("phonebook/cleared", "{}");
+        if (_pbMgr->remove(id)) {
+            logger.apif("[%s] DELETE /phonebook/%u: deleted", ip.c_str(), (unsigned)id);
+            doc["status"] = "deleted";
+            doc["id"] = id;
+            String body;
+            serializeJson(doc, body);
+            req->send(200, "application/json", body);
+            eventsPublish("phonebook/deleted", body.c_str());
+        } else {
+            doc["error"] = "not found";
+            sendJson(req, 404, doc);
+        }
     });
 
     // POST /phonebook — create entry
@@ -197,7 +226,9 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
         }
     });
 
-    // NotFoundHandler: PUT /phonebook/{id}, DELETE /phonebook/{id}, POST /phonebook/test/{id}
+    // NotFoundHandler: PUT /phonebook/{id}
+    // (DELETE /phonebook/{id} is handled above — the exact-path DELETE handler
+    // on "/phonebook" is prefix-matched by ESPAsyncWebServer and claims it first.)
     apiAddNotFoundHandler([](AsyncWebServerRequest* request) -> bool {
         String url = request->url();
         if (!url.startsWith("/phonebook/")) return false;
@@ -251,30 +282,6 @@ void phoneBookAPIBegin(PhoneBookManager& mgr) {
                 }
             } else {
                 request->send(404, "application/json", "{\"error\":\"not found\"}");
-            }
-            return true;
-        }
-
-        // DELETE /phonebook/<id>
-        if (method == HTTP_DELETE) {
-            String idStr = url.substring(11);
-            uint32_t id = (uint32_t)idStr.toInt();
-            if (id == 0) {
-                request->send(400, "application/json", "{\"error\":\"invalid id\"}");
-                return true;
-            }
-            JsonDocument doc;
-            if (_pbMgr->remove(id)) {
-                logger.apif("[%s] DELETE /phonebook/%u: deleted", ip.c_str(), (unsigned)id);
-                doc["status"] = "deleted";
-                doc["id"] = id;
-                String body;
-                serializeJson(doc, body);
-                request->send(200, "application/json", body);
-                eventsPublish("phonebook/deleted", body.c_str());
-            } else {
-                doc["error"] = "not found";
-                sendJson(request, 404, doc);
             }
             return true;
         }
