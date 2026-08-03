@@ -25,6 +25,9 @@ th{text-align:left;color:#6b7280;padding:5px 8px;border-bottom:1px solid #374151
 td{padding:5px 8px;border-bottom:1px solid #273042;vertical-align:middle}
 .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:.74rem}
 .bon{background:#14532d;color:#86efac}.boff{background:#450a0a;color:#fca5a5}
+.pb-caret{background:transparent;color:#9ca3af;padding:0;width:16px;height:16px;font-size:.7rem;line-height:16px;text-align:center;display:inline-block;vertical-align:middle;margin-right:4px}
+.pb-caret:hover{filter:none;color:#d1d5db}
+.pb-caret-spacer{display:inline-block;width:16px;margin-right:4px}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
 .don{background:#22c55e}.doff{background:#ef4444}
 .muted{color:#4b5563}
@@ -916,14 +919,29 @@ function updateDialResult(text, color) {
 
 // ── Phone Book ──────────────────────────────────────────────────────────────
 let pbEditId = null;
+const _pbExpanded = new Set();
 
 function _escAttr(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;'); }
+
+function togglePbExt(id) {
+  const show = !_pbExpanded.has(id);
+  if (show) _pbExpanded.add(id); else _pbExpanded.delete(id);
+  document.querySelectorAll(`tr[data-pb-ext-of="${id}"]`).forEach(r => {
+    r.style.display = show ? '' : 'none';
+  });
+  const caret = document.querySelector(`tr[data-pb-id="${id}"] .pb-caret`);
+  if (caret) caret.textContent = show ? '▾' : '▸';
+}
 
 function pbRow(e) {
   const j = _escAttr(JSON.stringify(e));
   const isBuiltin = e.type === 'builtin';
   const hasExt = e.extensions && e.extensions.length;
+  const expanded = _pbExpanded.has(e.id);
   const extCount = hasExt ? `<span class="badge bon">${e.extensions.length}</span>` : '';
+  const caret = hasExt
+    ? `<button class="pb-caret" onclick="togglePbExt(${e.id})" title="${expanded ? 'Collapse' : 'Expand'} extensions">${expanded ? '▾' : '▸'}</button>`
+    : `<span class="pb-caret-spacer"></span>`;
   const canTrigger = !isBuiltin && !hasExt && _pbEditing;
   const triggerBtn = canTrigger ? `<button class="bp" onclick="testPb(${e.id})">Trigger</button>` : '';
   const editBtns = _pbEditing ? `<button class="bm" onclick='editPb(${j})'>Edit</button>
@@ -944,7 +962,7 @@ function pbRow(e) {
   }
 
   let html = `<tr data-pb-id="${e.id}">
-    <td><strong>${e.number}</strong></td>
+    <td>${caret}<strong>${e.number}</strong></td>
     <td>${e.name}</td>
     <td>${urlCol}</td>
     <td>${methodCol}</td>
@@ -955,6 +973,7 @@ function pbRow(e) {
     </td>
   </tr>`;
   if (hasExt) {
+    const extRowStyle = expanded ? '' : 'display:none;';
     for (const x of e.extensions) {
       const xBuiltin = x.type === 'builtin';
       let extInfo, extMethod;
@@ -967,7 +986,7 @@ function pbRow(e) {
         extMethod = x.method || e.method;
       }
       const extTrigger = (!xBuiltin && _pbEditing) ? `<button class="bp" onclick="testPbExt(${e.id},'${x.ext}')">Trigger</button>` : '';
-      html += `<tr data-pb-ext-of="${e.id}" style="color:#9ca3af;font-size:.78rem">
+      html += `<tr data-pb-ext-of="${e.id}" style="${extRowStyle}color:#9ca3af;font-size:.78rem">
         <td style="padding-left:24px">ext ${x.ext}</td>
         <td>${x.name}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${extInfo}</td>
@@ -1014,6 +1033,7 @@ function removePbRow(id) {
   _removeExtRows(id);
   const row = document.querySelector(`#pb-tbody tr[data-pb-id="${id}"]`);
   if (row) row.remove();
+  _pbExpanded.delete(id);
   const tb = document.getElementById('pb-tbody');
   if (tb && tb.rows.length === 0) tb.innerHTML = '<tr><td colspan="6" class="muted">No entries</td></tr>';
   _syncPbActions();
@@ -1022,6 +1042,7 @@ function removePbRow(id) {
 function clearPbTable() {
   const tb = document.getElementById('pb-tbody');
   if (tb) tb.innerHTML = '<tr><td colspan="6" class="muted">No entries</td></tr>';
+  _pbExpanded.clear();
   _syncPbActions();
 }
 
